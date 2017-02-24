@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Flight Delays and Cancellations in 2016</title>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="http://d3js.org/topojson.v2.min.js"></script>
+        <style>
+            svg {border: 1px solid black}
+            .point { fill: black; }
+            path.trajectory { fill: none; }
+            path.state { fill: #eee; stroke: #aaa;; }
+        </style>
+    </head>
+
+    <body>
+        <h1>INFO 5100 - Project 1</h1>
+        <h2>Flight Delays and Cancellations in 2016</h2>
+        
+        <div id="map">Flight delays by airport (busiest 20)
+            <br />
+            <svg id="map_delays" height="500" width="800">
+            </svg>
+        </div>
+        
+        <script>
+            var svg = d3.select("#map_delays");
+
+            var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+            // D3 Projection
+            var projection = d3.geoAlbersUsa();
+                var pathGenerator = d3.geoPath().projection(projection);
+
+            var rawData;
+            var states;
+
+            d3.json("us.json", function (error, data) {
+                rawData = data;
+                
+                console.log("Code in the call-back function is only executed when the data file loads.");
+                
+                states = topojson.feature(rawData, rawData.objects.states);
+                showMap();
+            });
+
+            var width_map = svg.attr("width");
+            var height_map = svg.attr("height");
+            
+            function showMap() {
+                // Create or modify paths for each state
+                
+                projection.fitExtent([[0,0], [width_map, height_map]], states);
+                pathGenerator = d3.geoPath().projection(projection);
+                
+                var paths = svg.selectAll("path.state").data(states.features);
+                paths.enter().append("path").attr("class", "state")
+                .merge(paths)
+                .attr("d", function (state) {
+                    return pathGenerator(state);
+                });
+                
+            }
+        </script>
+    </body>
+</html>
