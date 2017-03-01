@@ -7,7 +7,7 @@ def default_factory():
 #file = '../data/tests/aggregate_airlines.csv'7
 #file = '../data/flights_delayed_cancelled/01jan.csv'
 file = '../data/all_flights/flights.csv' # file to read from
-out_file = '../data/processed/flights_2016.csv' # file to write to
+out_file = '../data/processed/flights_by_airline_2016.csv' # file to write to
 
 reader = csv.DictReader(open(file, newline=''))
 airlines = defaultdict(default_factory)
@@ -27,10 +27,11 @@ for row in reader:
     
     if(arrival_delay.isdigit()): # filters negative values
         delayed_hours = int(arrival_delay)
+        delayed_hours = 0 if delayed_hours < 15 else delayed_hours
     else:
         delayed_hours = 0
         
-    if (delayed_hours): # check for nulls
+    if (delayed_hours): # check for values
         airlines[unique_carrier, month][1] += 1 # count delays
     
     airlines[unique_carrier, month][0] += delayed_hours # sum delayed hours
@@ -127,11 +128,11 @@ for row in reader:
 
 # set max or min to None when there are no max or mins
 for airline in airlines:
-    if(airlines[airline[0], airline[1]][2] == sys.maxsize):
-        airlines[airline[0], airline[1]][2] = None
+    if(airlines[airline][2] == sys.maxsize):
+        airlines[airline][2] = None
     
-    if(airlines[airline[0], airline[1]][3] == 0):
-        airlines[airline[0], airline[1]][3] = None
+    if(airlines[airline][3] == 0):
+        airlines[airline][3] = None
 
 writer = csv.writer(open(out_file, 'w', newline = ''))
 writer.writerow(["AIRLINE", "MONTH", "DELAY_MINS_TOTAL", "TOTAL_DELAYS", "MIN_DELAY", "MAX_DELAY", "GRP_1_TOTAL", "GRP_2_TOTAL", "GRP_3_TOTAL", "GRP_4_TOTAL", "GRP_5_TOTAL", "GRP_6_TOTAL", "GRP_7_TOTAL", "GRP_8_TOTAL", "GRP_9_TOTAL", "GRP_10_TOTAL", "GRP_11_TOTAL", "GRP_12_TOTAL", "MON_TOTAL_DELAYS", "MON_HOURS_DELAY", "TUE_TOTAL_DELAYS", "TUE_HOURS_DELAY", "WED_TOTAL_DELAYS", "WED_HOURS_DELAY", "THU_TOTAL_DELAYS", "THU_HOURS_DELAY", "FRI_TOTAL_DELAYS", "FRI_HOURS_DELAY", "SAT_TOTAL_DELAYS", "SAT_HOURS_DELAY", "SUN_TOTAL_DELAYS", "SUN_HOURS_DELAY", "CARRIER_DELAY_MINS", "CARRIER_DELAY_TOTAL", "WEATHER_DELAY_MINS", "WEATHER_DELAY_TOTAL", "NAS_DELAY_MINS", "NAS_DELAY_TOTAL", "SECURITY_DELAY_MINS", "SECURITY_DELAY_TOTAL", "LATE_AIRCRAFT_DELAY_MINS", "LATE_AIRCRAFT_DELAY_TOTAL", "CANCELLED_TOTAL", "CANCELLATIONS_CARRIER", "CANCELLATIONS_WEATHER", "CANCELLATIONS_NAS", "CANCELLATIONS_SECURITY", "TOTAL_FLIGHTS"])

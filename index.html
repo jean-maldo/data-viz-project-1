@@ -32,17 +32,62 @@
             var projection = d3.geoAlbersUsa();
                 var pathGenerator = d3.geoPath().projection(projection);
 
+            var rawFlightData;
+            var flightData;
+            var busiest20Airports;
+            var airportData = {};
+            
             var rawData;
             var states;
-
-            d3.json("us.json", function (error, data) {
+            
+            var parseMap = function (error, data) {
                 rawData = data;
                 
                 console.log("Code in the call-back function is only executed when the data file loads.");
                 
                 states = topojson.feature(rawData, rawData.objects.states);
                 showMap();
-            });
+            }
+            
+            function parseFlightsLine (line) {
+                line.DELAY_MINS_TOTAL = Number(line.DELAY_MINS_TOTAL);
+                line.TOTAL_DELAYS = Number(line.TOTAL_DELAYS);
+                line.CANCELLED_TOTAL = Number(line.CANCELLED_TOTAL);
+                line.TOTAL_FLIGHTS = Number(line.TOTAL_FLIGHTS);
+                return line;
+            }
+            
+            function parseAirportsLine (line) {
+                line.LATITUDE = Number(line.LATITUDE);
+                line.LONGITUDE = Number(line.LONGITUDE);
+                line.ALTITUDE = Number(line.ALTITUDE);
+                
+                return airportData[line.IATA] = {"LATITUDE": line.LATITUDE, "LONGITUDE": line.LONGITUDE};
+            }
+
+            var parseFlights = function(error, data) {
+                rawFlightData = data;
+                
+                flightData = d3.nest()
+                    .key(function(d) { return d.AIRPORT; })
+                    .rollup(function(v) { return {
+                        totalDelays: d3.sum(v, function(d) { return d.TOTAL_DELAYS; }),
+                        totalDelayMins: d3.sum(v, function(d) { return d.DELAY_MINS_TOTAL; }),
+                        totalCancellations: d3.sum(v, function(d) { return d.CANCELLED_TOTAL; }),
+                        totalFlights: d3.sum(v, function(d) { return d.TOTAL_FLIGHTS; })
+                        };
+                    })
+                    .entries(rawFlightData);
+                    flightData = flightData.sort(function (a,b) {return d3.descending(a.value.totalFlights, b.value.totalFlights); });
+                    
+                    busiest20Airports = flightData.slice(0, 20);
+            }
+            
+            d3.queue()
+                .defer(d3.json, "us.json", parseMap)
+                .defer(d3.csv, "../data/processed/flights_by_airport_2016.csv", parseFlightsLine, parseFlights)
+                .defer(d3.csv, "../data/lookups/airport_coordinates_usa.csv", parseAirportsLine)
+                .await(showMap);
 
             var width_map = svg.attr("width");
             var height_map = svg.attr("height");
@@ -59,6 +104,7 @@
                 .attr("d", function (state) {
                     return pathGenerator(state);
                 });
+                
                 
             }
         </script>
