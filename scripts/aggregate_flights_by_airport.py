@@ -7,7 +7,7 @@ def default_factory():
 #file = '../data/tests/aggregate_airlines.csv'7
 #file = '../data/flights_delayed_cancelled/01jan.csv'
 file = '../data/all_flights/flights.csv' # file to read from
-out_file = '../data/processed/flights_by_airport_2016.csv' # file to write to
+out_file = '../data/processed/flights_by_airport_2016_latest.csv' # file to write to
 
 reader = csv.DictReader(open(file, newline=''))
 airlines = defaultdict(default_factory)
@@ -24,7 +24,8 @@ for row in reader:
     nas_delay = row["NAS_DELAY"]
     security_delay = row["SECURITY_DELAY"]
     late_aircraft_delay = row["LATE_AIRCRAFT_DELAY"]
-    
+    cancelled = row["CANCELLED"]
+    cancellation_code = row["CANCELLATION_CODE"]
     
     if(arrival_delay.isdigit()): # filters negative values
         delayed_hours = int(arrival_delay)
@@ -32,7 +33,7 @@ for row in reader:
     else:
         delayed_hours = 0
         
-    if (delayed_hours): # check for values
+    if (delayed_hours >= 15): # check for values
         airlines[unique_carrier, airport, month][1] += 1 # count delays
     
     airlines[unique_carrier, airport, month][0] += delayed_hours # sum delayed hours
@@ -43,74 +44,76 @@ for row in reader:
     max = airlines[unique_carrier, airport, month][3]
     airlines[unique_carrier, airport, month][3] = delayed_hours if max is None else delayed_hours if delayed_hours > max else max
     
-    if arrival_delay_group == "1":
-        airlines[unique_carrier, airport, month][4] += 1 # count delays of length 15-29 mins
-    elif arrival_delay_group == "2":
-        airlines[unique_carrier, airport, month][5] += 1 # count delays of length 30-44 mins
-    elif arrival_delay_group == "3":
-        airlines[unique_carrier, airport, month][6] += 1 # count delays of length 45-59 mins
-    elif  arrival_delay_group == "4":
-        airlines[unique_carrier, airport, month][7] += 1 # count delays of length 60-74 mins
-    elif arrival_delay_group == "5":
-        airlines[unique_carrier, airport, month][8] += 1 # count delays of length 75-89 mins
-    elif arrival_delay_group == "6":
-        airlines[unique_carrier, airport, month][9] += 1 # count delays of length 90-104 mins
-    elif  arrival_delay_group == "7":
-        airlines[unique_carrier, airport, month][10] += 1 # count delays of length 105-119 mins
-    elif arrival_delay_group == "8":
-        airlines[unique_carrier, airport, month][11] += 1 # count delays of length 120-134 mins
-    elif arrival_delay_group == "9":
-        airlines[unique_carrier, airport, month][12] += 1 # count delays of length 135-149 mins
-    elif arrival_delay_group == "10":
-        airlines[unique_carrier, airport, month][13] += 1 # count delays of length 150-164 mins
-    elif arrival_delay_group == "11":
-        airlines[unique_carrier, airport, month][14] += 1 # count delays of length 165-179 mins
-    elif arrival_delay_group == "12":
-        airlines[unique_carrier, airport, month][15] += 1 # count delays of length >= 180 mins        
-    if day_of_week == "1":
-        airlines[unique_carrier, airport, month][16] += 1 # count delays for Monday
-        airlines[unique_carrier, airport, month][17] += delayed_hours # count hours for delays on Monday
-    elif day_of_week == "2":
-        airlines[unique_carrier, airport, month][18] += 1 # count delays for Tuesday
-        airlines[unique_carrier, airport, month][19] += delayed_hours # count hours for delays on Tuesday
-    elif day_of_week == "3":
-        airlines[unique_carrier, airport, month][20] += 1 # count delays for Wednesday
-        airlines[unique_carrier, airport, month][21] += delayed_hours # count hours for delays on Wednesday
-    elif  day_of_week == "4":
-        airlines[unique_carrier, airport, month][22] += 1 # count delays for Thursday
-        airlines[unique_carrier, airport, month][23] += delayed_hours # count hours for delays on Thursday
-    elif day_of_week == "5":
-        airlines[unique_carrier, airport, month][24] += 1 # count delays for Friday
-        airlines[unique_carrier, airport, month][25] += delayed_hours # count hours for delays on Friday
-    elif day_of_week == "6":
-        airlines[unique_carrier, airport, month][26] += 1 # count delays for Saturday
-        airlines[unique_carrier, airport, month][27] += delayed_hours # count hours for delays on Saturday
-    elif  day_of_week == "7":
-        airlines[unique_carrier, airport, month][28] += 1 # count delays for Sunday
-        airlines[unique_carrier, airport, month][29] += delayed_hours # count hours for delays on Sunday
+    if(delayed_hours >= 15):
+        if arrival_delay_group == "1":
+            airlines[unique_carrier, airport, month][4] += 1 # count delays of length 15-29 mins
+        elif arrival_delay_group == "2":
+            airlines[unique_carrier, airport, month][5] += 1 # count delays of length 30-44 mins
+        elif arrival_delay_group == "3":
+            airlines[unique_carrier, airport, month][6] += 1 # count delays of length 45-59 mins
+        elif  arrival_delay_group == "4":
+            airlines[unique_carrier, airport, month][7] += 1 # count delays of length 60-74 mins
+        elif arrival_delay_group == "5":
+            airlines[unique_carrier, airport, month][8] += 1 # count delays of length 75-89 mins
+        elif arrival_delay_group == "6":
+            airlines[unique_carrier, airport, month][9] += 1 # count delays of length 90-104 mins
+        elif  arrival_delay_group == "7":
+            airlines[unique_carrier, airport, month][10] += 1 # count delays of length 105-119 mins
+        elif arrival_delay_group == "8":
+            airlines[unique_carrier, airport, month][11] += 1 # count delays of length 120-134 mins
+        elif arrival_delay_group == "9":
+            airlines[unique_carrier, airport, month][12] += 1 # count delays of length 135-149 mins
+        elif arrival_delay_group == "10":
+            airlines[unique_carrier, airport, month][13] += 1 # count delays of length 150-164 mins
+        elif arrival_delay_group == "11":
+            airlines[unique_carrier, airport, month][14] += 1 # count delays of length 165-179 mins
+        elif arrival_delay_group == "12":
+            airlines[unique_carrier, airport, month][15] += 1 # count delays of length >= 180 mins        
     
-    if(carrier_delay.isdigit()):
-        airlines[unique_carrier, airport, month][30] += int(carrier_delay) # count minutes for carrier delay
-        airlines[unique_carrier, airport, month][31] += 1 # count carrier delays
+    if(delayed_hours >= 15):
+        if day_of_week == "1":
+            airlines[unique_carrier, airport, month][16] += 1 # count delays for Monday
+            airlines[unique_carrier, airport, month][17] += delayed_hours # count hours for delays on Monday
+        elif day_of_week == "2":
+            airlines[unique_carrier, airport, month][18] += 1 # count delays for Tuesday
+            airlines[unique_carrier, airport, month][19] += delayed_hours # count hours for delays on Tuesday
+        elif day_of_week == "3":
+            airlines[unique_carrier, airport, month][20] += 1 # count delays for Wednesday
+            airlines[unique_carrier, airport, month][21] += delayed_hours # count hours for delays on Wednesday
+        elif  day_of_week == "4":
+            airlines[unique_carrier, airport, month][22] += 1 # count delays for Thursday
+            airlines[unique_carrier, airport, month][23] += delayed_hours # count hours for delays on Thursday
+        elif day_of_week == "5":
+            airlines[unique_carrier, airport, month][24] += 1 # count delays for Friday
+            airlines[unique_carrier, airport, month][25] += delayed_hours # count hours for delays on Friday
+        elif day_of_week == "6":
+            airlines[unique_carrier, airport, month][26] += 1 # count delays for Saturday
+            airlines[unique_carrier, airport, month][27] += delayed_hours # count hours for delays on Saturday
+        elif  day_of_week == "7":
+            airlines[unique_carrier, airport, month][28] += 1 # count delays for Sunday
+            airlines[unique_carrier, airport, month][29] += delayed_hours # count hours for delays on Sunday
     
-    if(weather_delay.isdigit()):
-        airlines[unique_carrier, airport, month][32] += int(weather_delay) # count minutes for weather delay
-        airlines[unique_carrier, airport, month][33] += 1 # count weather delays
+    if(delayed_hours >= 15):
+        if(carrier_delay.isdigit()):
+            airlines[unique_carrier, airport, month][30] += int(carrier_delay) # count minutes for carrier delay
+            airlines[unique_carrier, airport, month][31] += 1 if int(carrier_delay) > 0 else 0 # count carrier delays
+        
+        if(weather_delay.isdigit()):
+            airlines[unique_carrier, airport, month][32] += int(weather_delay) # count minutes for weather delay
+            airlines[unique_carrier, airport, month][33] += 1 if int(weather_delay) > 0 else 0 # count weather delays
+        
+        if(nas_delay.isdigit()):
+            airlines[unique_carrier, airport, month][34] += int(nas_delay) # count minutes for nas delay
+            airlines[unique_carrier, airport, month][35] += 1 if int(nas_delay) > 0 else 0 # count nas delays
+        
+        if(security_delay.isdigit()):
+            airlines[unique_carrier, airport, month][36] += int(security_delay) # count minutes for security delay
+            airlines[unique_carrier, airport, month][37] += 1 if int(security_delay) > 0 else 0 # count security delays
+        
+        if(late_aircraft_delay.isdigit()):
+            airlines[unique_carrier, airport, month][38] += int(late_aircraft_delay) # count minutes for late aircraft delay
+            airlines[unique_carrier, airport, month][39] += 1 if int(late_aircraft_delay) > 0 else 0 # count late aircraft delays
     
-    if(nas_delay.isdigit()):
-        airlines[unique_carrier, airport, month][34] += int(nas_delay) # count minutes for nas delay
-        airlines[unique_carrier, airport, month][35] += 1 # count nas delays
-    
-    if(security_delay.isdigit()):
-        airlines[unique_carrier, airport, month][36] += int(security_delay) # count minutes for security delay
-        airlines[unique_carrier, airport, month][37] += 1 # count security delays
-    
-    if(late_aircraft_delay.isdigit()):
-        airlines[unique_carrier, airport, month][38] += int(late_aircraft_delay) # count minutes for late aircraft delay
-        airlines[unique_carrier, airport, month][39] += 1 # count late aircraft delays
-    
-    cancelled = row["CANCELLED"]
-    cancellation_code = row["CANCELLATION_CODE"]
     if(cancelled == "1"):
         airlines[unique_carrier, airport, month][40] += 1
     if(cancellation_code == "A"): # late aircraft delay
