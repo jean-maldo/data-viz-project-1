@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Flight Delays and Cancellations in 2016</title>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="http://d3js.org/topojson.v2.min.js"></script>
+        <style>
+            map_svg {border: 1px solid black}
+            .point { fill: black; }
+            path.trajectory { fill: none; }
+            path.state { fill: #eee; stroke: #aaa; }
+
+            /*svg { border: solid #ccc 1px;}*/
+            path.lineGraph { fill: none; stroke-width: 2; }
+        </style>
+    </head>
+
+    <body>
+        <h1>INFO 5100 (Project 1) - Flight Delays and Cancellations in 2016</h1>
+
+        <div id="map">Flight Delay Causes - 20 Busiest Airports (NYC airports averaged)
+            <br />
+            <svg id="map_delays" height="620" width="900">
+            </svg>
+        </div>
+
+
+        <div id="lineGraph">Average Delays by Airlines
+            <br />
+            <svg id="lineGraph_dalays" height="450" width="820">
+              <path d=" M 560 50
+                L 560 350"
+                stroke="black"
+                stroke-opacity=0.5
+                stroke-dasharray="5,5"  />
+            </svg>
+        </div>
+
+        <script>
+            var map_svg = d3.select("#map_delays");
+            var dExtent;
+            var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+            var delayScale;
+            // D3 Projection
+            var projection = d3.geoAlbersUsa();
+            var pathGenerator = d3.geoPath().projection(projection);
+
+            var rawFlightData;
+            var flightData;
+            var busiest20Airports;
+            var mergedAirports = [];
+            var airportData = {};
+
+            var rawData;
+            var states;
+
+            function parseFlightsLine (line) {
+                line.DELAY_MINS_TOTAL = Number(line.DELAY_MINS_TOTAL);
+                line.TOTAL_DELAYS = Number(line.TOTAL_DELAYS);
+                line.CANCELLED_TOTAL = Number(line.CANCELLED_TOTAL);
+                line.TOTAL_FLIGHTS = Number(line.TOTAL_FLIGHTS);
+                return line;
+            }
+
+            function parseAirportsLine (line) {
+                line.LATITUDE = Number(line.LATITUDE);
+                line.LONGITUDE = Number(line.LONGITUDE);
+                line.ALTITUDE = Number(line.ALTITUDE);
+
+                return airportData[line.IATA] = [line.LONGITUDE, line.LATITUDE];
+            }
+
+            d3.queue()
+                .defer(d3.json, "us.json")
+                .defer(d3.csv, "data/processed/flights_by_airport_2016.csv", parseFlightsLine)
+                .defer(d3.csv, "data/lookups/airport_coordinates_usa.csv", parseAirportsLine)
+                .await(showMap);
+
+            var width_map = map_svg.attr("width");
+            var height_map = map_svg.attr("height");
+
+
+            function showMap(error, data_map, data_flights, data_airport_lkp) {
+                rawData = data_map;
+
+                states = topojson.feature(rawData, rawData.objects.states);
+
+                projection.fitExtent([[0,0], [width_map, height_map]], states);
+                pathGenerator = d3.geoPath().projection(projection);
+
+                var paths = map_svg.selectAll("path.state").data(states.features);
+                paths.enter().append("path").attr("class", "state")
+                .merge(paths)
+                .attr("d", function (state) {
+                    return pathGenerator(state);
+                });
+
+                rawFlightData = data_flights;
+
+                flightData = d3.nest()
+                    .key(function(d) { return d.AIRPORT; })
+                    .rollup(function(v) { return {
+                        totalDelays: d3.sum(v, function(d) { return d.TOTAL_DELAYS; }),
+                        totalDelayMins: d3.sum(v, function(d) { return d.DELAY_MINS_TOTAL; }),
+                        totalCancellations: d3.sum(v, function(d) { return d.CANCELLED_TOTAL; }),
+                        totalFlights: d3.sum(v, function(d) { return d.TOTAL_FLIGHTS; }),
+                        totalCarrierDelays: d3.sum(v, function(d) { return d.CARRIER_DELAY_TOTAL; }),
+                        totalWeatherDelays: d3.sum(v, function(d) { return d.WEATHER_DELAY_TOTAL; }),
+                        totalNASDelays: d3.sum(v, function(d) { return d.NAS_DELAY_TOTAL; }),
+                        totalSecurity: d3.sum(v, function(d) { return d.SECURITY_DELAY_TOTAL; }),
+                        totalLateAircraftDelays: d3.sum(v, function(d) { return d.LATE_AIRCRAFT_DELAY_TOTAL; })
+                        };
+                    })
+                    .entries(rawFlightData);
+                flightData = flightData.sort(function (a,b) {return d3.descending(a.value.totalFlights, b.value.totalFlights); });
+
+                busiest20Airports = flightData.slice(0, 20);
+
+                //busiest20Airports.splice(14, 1);
+
+                var NYCTotalDelays = 0,
+                    NYCTotalDelayMins = 0,
+                    NYCTotalCancellations = 0,
+                    NYCTotalFlights = 0,
+                    NYCTotalCarrierDelays = 0,
+                    NYCTotalWeatherDelays = 0,
+                    NYCTotalNASDelays = 0,
+                    NYCTotalSecurity = 0,
+                    NYCTotalLateAircraftDelays = 0;
+                    airportList = ["JFK", "LGA", "EWR"];
+
+                busiest20Airports.forEach(function(d) {
+                    if(airportList.indexOf(d.key) < 0) {
+                        mergedAirports.push(d);
+                    } else {
+                        NYCTotalDelays += d.value.totalDelays;
+                        NYCTotalDelayMins += d.value.totalDelayMins
+                        NYCTotalCancellations += d.value.totalCancellations;
+                        NYCTotalFlights += d.value.totalFlights;
+                        NYCTotalCarrierDelays += d.value.totalCarrierDelays;
+                        NYCTotalWeatherDelays += d.value.totalWeatherDelays;
+                        NYCTotalNASDelays += d.value.totalNASDelays;
+                        NYCTotalSecurity += d.value.totalSecurity;
+                        NYCTotalLateAircraftDelays += d.value.totalLateAircraftDelays;
+                    }
+                });
+
+                NYCTotalDelays /= airportList.length;
+                NYCTotalDelayMins /= airportList.length;
+                NYCTotalCancellations /= airportList.length;
+                NYCTotalFlights /= airportList.length;
+                NYCTotalCarrierDelays /= airportList.length;
+                NYCTotalWeatherDelays /= airportList.length;
+                NYCTotalNASDelays /= airportList.length;
+                NYCTotalSecurity /= airportList.length;
+                NYCTotalLateAircraftDelays /= airportList.length;
+
+                mergedAirports.push({"key": "NYC", "value": {"totalDelays": NYCTotalDelays, "totalDelayMins": NYCTotalDelayMins, "totalCancellations": NYCTotalCancellations, "totalFlights": NYCTotalFlights, "totalCarrierDelays": NYCTotalCarrierDelays, "totalWeatherDelays": NYCTotalWeatherDelays, "totalNASDelays": NYCTotalNASDelays, "totalSecurity": NYCTotalSecurity, "totalLateAircraftDelays": NYCTotalLateAircraftDelays}});
+
+                var NYCLatitude = 0;
+                var NYCLongitude = 0;
+
+                airportList.forEach(function(d) {
+                    NYCLatitude += airportData[d][0];
+                    NYCLongitude += airportData[d][1];
+                });
+
+                airportData["NYC"] = [NYCLatitude/airportList.length, NYCLongitude/airportList.length];
+
+                var formatPercentage = d3.format('.0%')
+
+                var delayExtent = d3.extent(mergedAirports, function(d) {return d.value.totalFlights});
+
+                delayScale = d3.scalePow().exponent(0.5)
+                    .domain(delayExtent)
+                    .range([18, 35]);
+
+                fontScale = d3.scalePow().exponent(0.5)
+                    .domain(delayExtent)
+                    .range([10, 22]);
+
+                var pie = d3.pie().value(function(d){ return d }).sort(null);
+
+                //var delayReasons = ["totalCarrierDelays", "totalWeatherDelays", "totalNASDelays", "totalLateAircraftDelays"];
+                var delayReasons = [{"delayReason": "totalCarrierDelays", "delayDescription": "Carrier Delays"}, {"delayReason": "totalWeatherDelays", "delayDescription": "Weather Delays"}, {"delayReason": "totalNASDelays", "delayDescription": "NAS Delays"}, {"delayReason": "totalLateAircraftDelays", "delayDescription": "Late Aircraft Delays"}];
+
+                var legendX = 50
+
+                map_svg.selectAll("legend_box").data(delayReasons)
+                    .enter()
+                    .append("rect")
+                    .attr("id", "legend_" + function(d) { return d.delayReason; })
+                    .attr("class", "legend_box")
+                    .attr("x", function(d, i) { legendX += 160; return legendX; })
+                    .attr("y", 20)
+                    .attr("width", 20)
+                    .attr("height", 20)
+                    .attr("fill", function(d, i) { return colorScale(i); });
+
+                d3.selectAll(".legend_box").each( function (d, i) {
+                    var legendBox = d3.select(this);
+                    map_svg.append("text")
+                        .attr("id", "legendText_" + d.delayReason)
+                        .attr("class", "legendLabels")
+                        .attr("x", Number(legendBox.attr("x")) + Number(legendBox.attr("width")))
+                        .attr("y", Number(legendBox.attr("y")) + (Number(legendBox.attr("height")/2)))
+                        .attr("dx", 5)
+                        .attr("text-anchor", "start")
+                        .attr("alignment-baseline", "middle")
+                        .attr('font-size', 14)
+                        .attr('font-weight',"bold")
+                        .text(d.delayDescription);
+                });
+
+                var legendPercent = map_svg.append("circle")
+                    .attr("id", "percentageLegend")
+                    .attr("r", 15)
+                    .attr("cx", 30)
+                    .attr("cy", 30)
+                    .attr("fill", "white")
+                    .attr('stroke', '#000')
+                    .attr('stroke-width', '1')
+                    .style("stroke-opacity", "0.5");
+
+                map_svg.append("text")
+                    .attr("id", "percentageTextLegend")
+                    .attr("x", legendPercent.attr("cx"))
+                    .attr("y", legendPercent.attr("cy"))
+                    .attr("text-anchor", "middle")
+                    .attr("alignment-baseline", "middle")
+                    .attr('font-size', 12)
+                    .attr('font-weight',"bold")
+                    .text("9%");
+
+                map_svg.append("text")
+                    .attr("id", "percentageTextLegend")
+                    .attr("x", Number(legendPercent.attr("cx")) + Number(legendPercent.attr("r")))
+                    .attr("y", legendPercent.attr("cy"))
+                    .attr("dx", 5)
+                    .attr("text-anchor", "start")
+                    .attr("alignment-baseline", "middle")
+                    .attr('font-size', 14)
+                    .attr('font-weight',"bold")
+                    .text("% Delayed Flights");
+
+                map_svg.selectAll('.airportPie').data(mergedAirports)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'airportPie')
+                    .attr("transform", function(d) {
+                      return "translate(" + projection(airportData[d.key])[0] + "," + projection(airportData[d.key])[1] + ")";
+                    })
+                    .each(function(chartData, i) {
+                        var pieRadius = delayScale(chartData.value.totalFlights);
+                        var mapCoordinates = projection(airportData[chartData.key])
+                        var chartContainer = d3.select(this);// Selects the containing 'g'
+
+                        map_svg.append("circle")
+                            .attr("id", "circleBG_" + chartData.key)
+                            .attr("class", "circleBackgrounds")
+                            .attr("r", pieRadius - 8)
+                            .attr("cx", mapCoordinates[0])
+                            .attr("cy", mapCoordinates[1])
+                            .attr("fill", "white");
+
+                        var delayTotalsData = []
+                        delayReasons.forEach(function(reason){
+                            delayTotalsData = delayTotalsData.concat(chartData.value[reason.delayReason]);
+                        });
+
+                        chartContainer.selectAll("path")
+                            .data(pie(delayTotalsData))
+                            .enter()
+                            .append("path")
+                            .attr("d", d3.arc().innerRadius(pieRadius - 7).outerRadius(pieRadius))
+                            .attr("class", "arc")
+                            .style('fill', function(d, i) { return colorScale(i); })
+                            .attr('stroke', '#fff')
+                            .attr('stroke-width', '1')
+                            .style("stroke-opacity", "0.75")
+                            .attr("class", "arc");
+
+                        map_svg.append("text")
+                            .attr("id", "delayPercentage_" + chartData.key)
+                            .attr("class", "delayPercentages")
+                            .attr("x", mapCoordinates[0])
+                            .attr("y", mapCoordinates[1])
+                            .attr("text-anchor", "middle")
+                            .attr("alignment-baseline", "middle")
+                            .attr('font-size', fontScale(chartData.value.totalFlights))
+                            .attr('font-weight',"bold")
+                            .text(formatPercentage(chartData.value.totalDelays/chartData.value.totalFlights));
+
+                        map_svg.append("text")
+                            .attr("id", "label_" + chartData.key)
+                            .attr("class", "airportLabels")
+                            .attr("x", mapCoordinates[0])
+                            .attr("y", mapCoordinates[1])
+                            .attr("text-anchor", "middle")
+                            .attr("alignment-baseline", "hanging")
+                            .attr("dy", pieRadius + 5 )
+                            .text(chartData.key);
+                    });
+            }
+        </script>
+
+        <script>
+          var svg_lineGraph = d3.select("#lineGraph_dalays");
+          var colorScale_lineGraph = d3.scaleOrdinal(d3.schemeCategory20);
+
+          // Scales and axis
+          var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+          var weekScale = d3.scalePoint()
+          .domain(days)
+          .range([0,500])
+          .padding(0.3);
+          var weekAxis = d3.axisBottom(weekScale);
+          var delayMinScale = d3.scaleLinear().domain([30,80]).range([300, 0]);
+          var delayMinAxis = d3.axisLeft(delayMinScale).ticks(6);
+
+          // add gridlines on y
+          var yGridlines = d3.axisLeft(delayMinScale).ticks(6);
+          var gridWidth = weekScale.range()[1];
+          svg_lineGraph.append("g")
+          .attr("class", "grid")
+          .attr("transform", "translate(60,50)")
+          .style("stroke-opacity", 0.5)
+          .style("stroke-dasharray", ("5,5"))
+          .call(yGridlines.tickSize(-gridWidth,0).tickFormat(""));
+
+          // show axises
+          var plot_lineGraph = svg_lineGraph.append("g").attr("transform", "translate(60,50)");
+          plot_lineGraph.append("g").call(weekAxis).attr("transform", "translate(0,300)");
+          plot_lineGraph.append("g").call(delayMinAxis).attr("transform", "translate(0,0)").attr("stroke-opacity",0);
+          // show the path
+          var pathGenerator = d3.line()
+          .x(function (d) { return weekScale(d.Day); })
+          .y(function (d) { return delayMinScale(d.avg); })
+          .curve(d3.curveMonotoneX);
+
+          // define variables
+          var rawData, nestedData;
+          var airlineData = [];
+
+
+          function parseWeeklyLine (line) {
+          	line.MONTH = Number(line.MONTH);
+          	line.TOTAL_DELAYS = Number(line.TOTAL_DELAYS);
+          	line.MON_HOURS_DELAY = Number(line.MON_HOURS_DELAY);
+          	line.TUE_HOURS_DELAY = Number(line.TUE_HOURS_DELAY);
+          	line.WED_HOURS_DELAY = Number(line.WED_HOURS_DELAY);
+          	line.THU_HOURS_DELAY = Number(line.THU_HOURS_DELAY);
+          	line.FRI_HOURS_DELAY = Number(line.FRI_HOURS_DELAY);
+          	line.SAT_HOURS_DELAY = Number(line.SAT_HOURS_DELAY);
+          	line.SUN_HOURS_DELAY = Number(line.SUN_HOURS_DELAY);
+
+            line.MON_TOTAL_DELAYS1 = Number(line.MON_TOTAL_DELAYS);
+          	line.TUE_TOTAL_DELAYS = Number(line.TUE_TOTAL_DELAYS);
+          	line.WED_TOTAL_DELAYS = Number(line.WED_TOTAL_DELAYS);
+          	line.THU_TOTAL_DELAYS = Number(line.THU_TOTAL_DELAYS);
+          	line.FRI_TOTAL_DELAYS = Number(line.FRI_TOTAL_DELAYS);
+          	line.SAT_TOTAL_DELAYS = Number(line.SAT_TOTAL_DELAYS);
+          	line.SUN_TOTAL_DELAYS = Number(line.SUN_TOTAL_DELAYS);
+
+          	return line;
+          }
+
+          // load, process, and show data
+          d3.csv("data/processed/flights_by_airline_2016.csv", parseWeeklyLine, function(error, data) {
+            rawData = data;
+            nestedData = d3.nest()
+          	.key(function (d) { return d.AIRLINE; })
+            // .key(function(d) { return d.MONTH; })
+            .rollup(function(v) { return {
+                // month: function(d) { return d.MONTH;},
+                hoursDelayMon: d3.sum(v, function(d) { return d.MON_HOURS_DELAY;}),
+                hoursDelayTue: d3.sum(v, function(d) { return d.TUE_HOURS_DELAY;}),
+                hoursDelayWed: d3.sum(v, function(d) { return d.WED_HOURS_DELAY;}),
+                hoursDelayThu: d3.sum(v, function(d) { return d.THU_HOURS_DELAY;}),
+                hoursDelayFri: d3.sum(v, function(d) { return d.FRI_HOURS_DELAY;}),
+                hoursDelaySat: d3.sum(v, function(d) { return d.SAT_HOURS_DELAY;}),
+                hoursDelaySun: d3.sum(v, function(d) { return d.SUN_HOURS_DELAY;}),
+
+                totalDelayMon: d3.sum(v, function(d) { return d.MON_TOTAL_DELAYS;}),
+                totalDelayTue: d3.sum(v, function(d) { return d.TUE_TOTAL_DELAYS;}),
+                totalDelayWed: d3.sum(v, function(d) { return d.WED_TOTAL_DELAYS;}),
+                totalDelayThu: d3.sum(v, function(d) { return d.THU_TOTAL_DELAYS;}),
+                totalDelayFri: d3.sum(v, function(d) { return d.FRI_TOTAL_DELAYS;}),
+                totalDelaySat: d3.sum(v, function(d) { return d.SAT_TOTAL_DELAYS;}),
+                totalDelaySun: d3.sum(v, function(d) { return d.SUN_TOTAL_DELAYS;})
+
+                };
+
+            })
+          	.entries(rawData);
+
+            nestedData.forEach(function(d) {
+
+                airlineData.push({"airline": d.key, "values": [{"Day": "Sunday", "avg": d.value.hoursDelaySun/d.value.totalDelaySun}, {"Day": "Monday", "avg": d.value.hoursDelayMon/d.value.totalDelayMon}, {"Day": "Tuesday", "avg": d.value.hoursDelayTue/d.value.totalDelayTue}, {"Day": "Wednesday", "avg": d.value.hoursDelayWed/d.value.totalDelayWed}, {"Day": "Thursday", "avg": d.value.hoursDelayThu/d.value.totalDelayThu}, {"Day": "Friday", "avg": d.value.hoursDelayFri/d.value.totalDelayFri}, {"Day": "Saturday", "avg": d.value.hoursDelaySat/d.value.totalDelaySat}]});
+            });
+
+            // legend
+            t();
+
+            showTrends(airlineData);
+
+          });
+
+          function showTrends(data) {
+            // Create or modify paths for each airline
+            var paths = plot_lineGraph.selectAll("path.lineGraph").data(data);
+            paths.enter().append("path")
+            .merge(paths)
+            .attr("class", "lineGraph")
+            .attr("d", function(sector) {
+              airlineName = sector.airline;
+              return pathGenerator(sector.values);
+            })
+            .style("stroke", function(sector, i) {
+              lineColor = colorScale_lineGraph(i);
+              return colorScale_lineGraph(i);
+            })
+
+
+          }
+
+         var legendData = [
+            { "x": 620, "y": 30},
+            { "x": 620, "y": 60},
+            { "x": 620, "y": 90},
+            { "x": 620, "y": 120},
+            { "x": 620, "y": 150},
+            { "x": 620, "y": 180},
+            { "x": 620, "y": 210},
+            { "x": 620, "y": 240},
+            { "x": 620, "y": 270},
+            { "x": 620, "y": 300},
+            { "x": 620, "y": 330},
+            { "x": 620, "y": 360},
+         ];
+
+        //create rectangles
+        var legendRect = svg_lineGraph.selectAll("rect")
+                .data(legendData)
+                .enter()
+                .append("rect")
+                .attr("x", function (d) { return d.x; })
+                .attr("y", function (d) { return d.y; })
+                .attr("width", 10)
+                .style("height", 10)
+                .attr("fill", function(d, i) { return colorScale_lineGraph(i); });
+
+          function t() {
+            for (var i = 0; i < legendData.length; i++) {
+              svg_lineGraph.append("text")
+              .attr("x", legendData[i].x+15)
+              .attr("y", legendData[i].y+5)
+              .attr("text-anchor", "start")
+              .attr("alignment-baseline", "central")
+              .text(function (d) {
+                if(airlineData[i].airline == "EV"){
+                  return "ExpressJet Airlines";
+                }
+                else if(airlineData[i].airline == "HA")
+                  return "Hawaiian Airlines";
+                else if(airlineData[i].airline == "B6")
+                  return "JetBlue Airways";
+                else if(airlineData[i].airline == "F9")
+                  return "Frontier Airlines";
+                else if(airlineData[i].airline == "AA")
+                  return "American Airlines";
+                else if(airlineData[i].airline == "UA")
+                  return "United Airlines";
+                else if(airlineData[i].airline == "VX")
+                  return "Virgin America";
+                else if(airlineData[i].airline == "OO")
+                  return "SkyWest Airlines";
+                // else if(airlineData[i].airline == "UA")
+                  // return "United Airlines";
+                else if(airlineData[i].airline == "AS")
+                  return "Alaska Airlines";
+                else if(airlineData[i].airline == "NK")
+                  return "Spirit Airlines";
+                else if(airlineData[i].airline == "DL")
+                  return "Delta Airlines";
+                else if(airlineData[i].airline == "WN")
+                  return "Southwest Airlines";
+
+                else {
+                  return airlineData[i].airline;
+                }
+              });
+
+            }
+          }
+
+          svg_lineGraph.append("text")
+          .attr("x", 60)
+          .attr("y", 40)
+          .text("Delay time(mins)")
+          .attr("font-size", 12);
+
+          svg_lineGraph.append("text")
+          .attr("x", 295)
+          .attr("y", 400)
+          .text("Days")
+          .attr("font-size", 15);
+
+        </script>
+    </body>
+</html>

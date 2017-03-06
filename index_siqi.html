@@ -6,8 +6,6 @@
 
       <style>
           svg { border: solid #ccc 1px;}
-          svg_lineGraph {border: 1px solid black}
-          .point { fill: black; }
           path.lineGraph { fill: none; stroke-width: 2; }
       </style>
   </head>
@@ -26,25 +24,21 @@
     </div>
 
     <script>
-      // var margin = {top: 20, right: 40, bottom: 30, left:20};
-      // var width = 800 - margin.left - margin.right;
       var svg_lineGraph = d3.select("#lineGraph_dalays");
       var colorScale_lineGraph = d3.scaleOrdinal(d3.schemeCategory20);
+
+      // Scales and axis
       var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
       var weekScale = d3.scalePoint()
       .domain(days)
       .range([0,500])
       .padding(0.3);
-      // weekScale
       var weekAxis = d3.axisBottom(weekScale);
-
-
       var delayMinScale = d3.scaleLinear().domain([30,80]).range([300, 0]);
       var delayMinAxis = d3.axisLeft(delayMinScale).ticks(6);
 
       // add gridlines on y
       var yGridlines = d3.axisLeft(delayMinScale).ticks(6);
-
       var gridWidth = weekScale.range()[1];
       svg_lineGraph.append("g")
       .attr("class", "grid")
@@ -53,20 +47,20 @@
       .style("stroke-dasharray", ("5,5"))
       .call(yGridlines.tickSize(-gridWidth,0).tickFormat(""));
 
-
+      // show axises
       var plot_lineGraph = svg_lineGraph.append("g").attr("transform", "translate(60,50)");
       plot_lineGraph.append("g").call(weekAxis).attr("transform", "translate(0,300)");
       plot_lineGraph.append("g").call(delayMinAxis).attr("transform", "translate(0,0)").attr("stroke-opacity",0);
-
+      // show the path
       var pathGenerator = d3.line()
       .x(function (d) { return weekScale(d.Day); })
       .y(function (d) { return delayMinScale(d.avg); })
       .curve(d3.curveMonotoneX);
 
-      // define variables`
+      // define variables
       var rawData, nestedData;
       var airlineData = [];
-      var temp;
+
 
       function parseWeeklyLine (line) {
       	line.MONTH = Number(line.MONTH);
@@ -90,6 +84,7 @@
       	return line;
       }
 
+      // load, process, and show data
       d3.csv("data/processed/flights_by_airline_2016.csv", parseWeeklyLine, function(error, data) {
         rawData = data;
         nestedData = d3.nest()
@@ -118,22 +113,18 @@
         })
       	.entries(rawData);
 
-
-
         nestedData.forEach(function(d) {
 
             airlineData.push({"airline": d.key, "values": [{"Day": "Sunday", "avg": d.value.hoursDelaySun/d.value.totalDelaySun}, {"Day": "Monday", "avg": d.value.hoursDelayMon/d.value.totalDelayMon}, {"Day": "Tuesday", "avg": d.value.hoursDelayTue/d.value.totalDelayTue}, {"Day": "Wednesday", "avg": d.value.hoursDelayWed/d.value.totalDelayWed}, {"Day": "Thursday", "avg": d.value.hoursDelayThu/d.value.totalDelayThu}, {"Day": "Friday", "avg": d.value.hoursDelayFri/d.value.totalDelayFri}, {"Day": "Saturday", "avg": d.value.hoursDelaySat/d.value.totalDelaySat}]});
         });
 
-
-
+        // legend
         t();
-        // airlineData['key'] = nestedData.key;
+
         showTrends(airlineData);
 
       });
 
-      var lineColor, airlineName;
       function showTrends(data) {
         // Create or modify paths for each airline
         var paths = plot_lineGraph.selectAll("path.lineGraph").data(data);
