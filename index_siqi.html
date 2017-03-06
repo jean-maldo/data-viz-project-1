@@ -1,0 +1,240 @@
+<html>
+  <head>
+      <title>Flight Delays and Cancellations in 2016</title>
+      <script src="https://d3js.org/d3.v4.min.js"></script>
+      <script src="http://d3js.org/topojson.v2.min.js"></script>
+
+      <style>
+          svg { border: solid #ccc 1px;}
+          svg_lineGraph {border: 1px solid black}
+          .point { fill: black; }
+          path.lineGraph { fill: none; stroke-width: 2; }
+      </style>
+  </head>
+
+  <body>
+
+    <div id="lineGraph">Average delays by airlines
+        <br />
+        <svg id="lineGraph_dalays" height="450" width="820">
+          <path d=" M 560 50
+            L 560 350"
+            stroke="black"
+            stroke-opacity=0.5
+            stroke-dasharray="5,5"  />
+        </svg>
+    </div>
+
+    <script>
+      // var margin = {top: 20, right: 40, bottom: 30, left:20};
+      // var width = 800 - margin.left - margin.right;
+      var svg_lineGraph = d3.select("#lineGraph_dalays");
+      var colorScale_lineGraph = d3.scaleOrdinal(d3.schemeCategory20);
+      var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      var weekScale = d3.scalePoint()
+      .domain(days)
+      .range([0,500])
+      .padding(0.3);
+      // weekScale
+      var weekAxis = d3.axisBottom(weekScale);
+
+
+      var delayMinScale = d3.scaleLinear().domain([30,80]).range([300, 0]);
+      var delayMinAxis = d3.axisLeft(delayMinScale).ticks(6);
+
+      // add gridlines on y
+      var yGridlines = d3.axisLeft(delayMinScale).ticks(6);
+
+      var gridWidth = weekScale.range()[1];
+      svg_lineGraph.append("g")
+      .attr("class", "grid")
+      .attr("transform", "translate(60,50)")
+      .style("stroke-opacity", 0.5)
+      .style("stroke-dasharray", ("5,5"))
+      .call(yGridlines.tickSize(-gridWidth,0).tickFormat(""));
+
+
+      var plot_lineGraph = svg_lineGraph.append("g").attr("transform", "translate(60,50)");
+      plot_lineGraph.append("g").call(weekAxis).attr("transform", "translate(0,300)");
+      plot_lineGraph.append("g").call(delayMinAxis).attr("transform", "translate(0,0)").attr("stroke-opacity",0);
+
+      var pathGenerator = d3.line()
+      .x(function (d) { return weekScale(d.Day); })
+      .y(function (d) { return delayMinScale(d.avg); })
+      .curve(d3.curveMonotoneX);
+
+      // define variables`
+      var rawData, nestedData;
+      var airlineData = [];
+      var temp;
+
+      function parseWeeklyLine (line) {
+      	line.MONTH = Number(line.MONTH);
+      	line.TOTAL_DELAYS = Number(line.TOTAL_DELAYS);
+      	line.MON_HOURS_DELAY = Number(line.MON_HOURS_DELAY);
+      	line.TUE_HOURS_DELAY = Number(line.TUE_HOURS_DELAY);
+      	line.WED_HOURS_DELAY = Number(line.WED_HOURS_DELAY);
+      	line.THU_HOURS_DELAY = Number(line.THU_HOURS_DELAY);
+      	line.FRI_HOURS_DELAY = Number(line.FRI_HOURS_DELAY);
+      	line.SAT_HOURS_DELAY = Number(line.SAT_HOURS_DELAY);
+      	line.SUN_HOURS_DELAY = Number(line.SUN_HOURS_DELAY);
+
+        line.MON_TOTAL_DELAYS1 = Number(line.MON_TOTAL_DELAYS);
+      	line.TUE_TOTAL_DELAYS = Number(line.TUE_TOTAL_DELAYS);
+      	line.WED_TOTAL_DELAYS = Number(line.WED_TOTAL_DELAYS);
+      	line.THU_TOTAL_DELAYS = Number(line.THU_TOTAL_DELAYS);
+      	line.FRI_TOTAL_DELAYS = Number(line.FRI_TOTAL_DELAYS);
+      	line.SAT_TOTAL_DELAYS = Number(line.SAT_TOTAL_DELAYS);
+      	line.SUN_TOTAL_DELAYS = Number(line.SUN_TOTAL_DELAYS);
+
+      	return line;
+      }
+
+      d3.csv("data/processed/flights_by_airline_2016.csv", parseWeeklyLine, function(error, data) {
+        rawData = data;
+        nestedData = d3.nest()
+      	.key(function (d) { return d.AIRLINE; })
+        // .key(function(d) { return d.MONTH; })
+        .rollup(function(v) { return {
+            // month: function(d) { return d.MONTH;},
+            hoursDelayMon: d3.sum(v, function(d) { return d.MON_HOURS_DELAY;}),
+            hoursDelayTue: d3.sum(v, function(d) { return d.TUE_HOURS_DELAY;}),
+            hoursDelayWed: d3.sum(v, function(d) { return d.WED_HOURS_DELAY;}),
+            hoursDelayThu: d3.sum(v, function(d) { return d.THU_HOURS_DELAY;}),
+            hoursDelayFri: d3.sum(v, function(d) { return d.FRI_HOURS_DELAY;}),
+            hoursDelaySat: d3.sum(v, function(d) { return d.SAT_HOURS_DELAY;}),
+            hoursDelaySun: d3.sum(v, function(d) { return d.SUN_HOURS_DELAY;}),
+
+            totalDelayMon: d3.sum(v, function(d) { return d.MON_TOTAL_DELAYS;}),
+            totalDelayTue: d3.sum(v, function(d) { return d.TUE_TOTAL_DELAYS;}),
+            totalDelayWed: d3.sum(v, function(d) { return d.WED_TOTAL_DELAYS;}),
+            totalDelayThu: d3.sum(v, function(d) { return d.THU_TOTAL_DELAYS;}),
+            totalDelayFri: d3.sum(v, function(d) { return d.FRI_TOTAL_DELAYS;}),
+            totalDelaySat: d3.sum(v, function(d) { return d.SAT_TOTAL_DELAYS;}),
+            totalDelaySun: d3.sum(v, function(d) { return d.SUN_TOTAL_DELAYS;})
+
+            };
+
+        })
+      	.entries(rawData);
+
+
+
+        nestedData.forEach(function(d) {
+
+            airlineData.push({"airline": d.key, "values": [{"Day": "Sunday", "avg": d.value.hoursDelaySun/d.value.totalDelaySun}, {"Day": "Monday", "avg": d.value.hoursDelayMon/d.value.totalDelayMon}, {"Day": "Tuesday", "avg": d.value.hoursDelayTue/d.value.totalDelayTue}, {"Day": "Wednesday", "avg": d.value.hoursDelayWed/d.value.totalDelayWed}, {"Day": "Thursday", "avg": d.value.hoursDelayThu/d.value.totalDelayThu}, {"Day": "Friday", "avg": d.value.hoursDelayFri/d.value.totalDelayFri}, {"Day": "Saturday", "avg": d.value.hoursDelaySat/d.value.totalDelaySat}]});
+        });
+
+
+
+        t();
+        // airlineData['key'] = nestedData.key;
+        showTrends(airlineData);
+
+      });
+
+      var lineColor, airlineName;
+      function showTrends(data) {
+        // Create or modify paths for each airline
+        var paths = plot_lineGraph.selectAll("path.lineGraph").data(data);
+        paths.enter().append("path")
+        .merge(paths)
+        .attr("class", "lineGraph")
+        .attr("d", function(sector) {
+          airlineName = sector.airline;
+          return pathGenerator(sector.values);
+        })
+        .style("stroke", function(sector, i) {
+          lineColor = colorScale_lineGraph(i);
+          return colorScale_lineGraph(i);
+        })
+
+
+      }
+
+     var legendData = [
+        { "x": 620, "y": 30},
+        { "x": 620, "y": 60},
+        { "x": 620, "y": 90},
+        { "x": 620, "y": 120},
+        { "x": 620, "y": 150},
+        { "x": 620, "y": 180},
+        { "x": 620, "y": 210},
+        { "x": 620, "y": 240},
+        { "x": 620, "y": 270},
+        { "x": 620, "y": 300},
+        { "x": 620, "y": 330},
+        { "x": 620, "y": 360},
+     ];
+
+    //create rectangles
+    var legendRect = svg_lineGraph.selectAll("rect")
+            .data(legendData)
+            .enter()
+            .append("rect")
+            .attr("x", function (d) { return d.x; })
+            .attr("y", function (d) { return d.y; })
+            .attr("width", 10)
+            .style("height", 10)
+            .attr("fill", function(d, i) { return colorScale_lineGraph(i); });
+
+      function t() {
+        for (var i = 0; i < legendData.length; i++) {
+          svg_lineGraph.append("text")
+          .attr("x", legendData[i].x+15)
+          .attr("y", legendData[i].y+5)
+          .attr("text-anchor", "start")
+          .attr("alignment-baseline", "central")
+          .text(function (d) {
+            if(airlineData[i].airline == "EV"){
+              return "ExpressJet Airlines";
+            }
+            else if(airlineData[i].airline == "HA")
+              return "Hawaiian Airlines";
+            else if(airlineData[i].airline == "B6")
+              return "JetBlue Airways";
+            else if(airlineData[i].airline == "F9")
+              return "Frontier Airlines";
+            else if(airlineData[i].airline == "AA")
+              return "American Airlines";
+            else if(airlineData[i].airline == "UA")
+              return "United Airlines";
+            else if(airlineData[i].airline == "VX")
+              return "Virgin America";
+            else if(airlineData[i].airline == "OO")
+              return "SkyWest Airlines";
+            // else if(airlineData[i].airline == "UA")
+              // return "United Airlines";
+            else if(airlineData[i].airline == "AS")
+              return "Alaska Airlines";
+            else if(airlineData[i].airline == "NK")
+              return "Spirit Airlines";
+            else if(airlineData[i].airline == "DL")
+              return "Delta Airlines";
+            else if(airlineData[i].airline == "WN")
+              return "Southwest Airlines";
+
+            else {
+              return airlineData[i].airline;
+            }
+          });
+
+        }
+      }
+
+      svg_lineGraph.append("text")
+      .attr("x", 60)
+      .attr("y", 40)
+      .text("Delay time(mins)")
+      .attr("font-size", 12);
+
+      svg_lineGraph.append("text")
+      .attr("x", 295)
+      .attr("y", 400)
+      .text("Days")
+      .attr("font-size", 15);
+
+    </script>
+
+  </body>
+</html>

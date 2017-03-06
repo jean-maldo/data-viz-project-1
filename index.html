@@ -14,15 +14,14 @@
     </head>
 
     <body>
-        <h1>INFO 5100 - Project 1</h1>
-        <h2>Flight Delays and Cancellations in 2016</h2>
-        
-        <div id="map">Flight delays by airport (busiest 20)
+        <h1>INFO 5100 (Project 1) - Flight Delays and Cancellations in 2016</h1>
+
+        <div id="map">Flight Delay Causes - 20 Busiest Airports (NYC airports averaged)
             <br />
-            <svg id="map_delays" height="500" width="800">
+            <svg id="map_delays" height="620" width="900">
             </svg>
         </div>
-        
+
         <script>
             var map_svg = d3.select("#map_delays");
             var dExtent;
@@ -35,12 +34,12 @@
             var rawFlightData;
             var flightData;
             var busiest20Airports;
+            var mergedAirports = [];
             var airportData = {};
-            var airportDelayValues = [];
-            
+
             var rawData;
             var states;
-            
+
             function parseFlightsLine (line) {
                 line.DELAY_MINS_TOTAL = Number(line.DELAY_MINS_TOTAL);
                 line.TOTAL_DELAYS = Number(line.TOTAL_DELAYS);
@@ -48,15 +47,15 @@
                 line.TOTAL_FLIGHTS = Number(line.TOTAL_FLIGHTS);
                 return line;
             }
-            
+
             function parseAirportsLine (line) {
                 line.LATITUDE = Number(line.LATITUDE);
                 line.LONGITUDE = Number(line.LONGITUDE);
                 line.ALTITUDE = Number(line.ALTITUDE);
-                
+
                 return airportData[line.IATA] = [line.LONGITUDE, line.LATITUDE];
             }
-            
+
             d3.queue()
                 .defer(d3.json, "us.json")
                 .defer(d3.csv, "../data/processed/flights_by_airport_2016.csv", parseFlightsLine)
@@ -65,25 +64,25 @@
 
             var width_map = map_svg.attr("width");
             var height_map = map_svg.attr("height");
-            
-            
+
+
             function showMap(error, data_map, data_flights, data_airport_lkp) {
                 rawData = data_map;
-                
+
                 states = topojson.feature(rawData, rawData.objects.states);
-                
+
                 projection.fitExtent([[0,0], [width_map, height_map]], states);
                 pathGenerator = d3.geoPath().projection(projection);
-                
+
                 var paths = map_svg.selectAll("path.state").data(states.features);
                 paths.enter().append("path").attr("class", "state")
                 .merge(paths)
                 .attr("d", function (state) {
                     return pathGenerator(state);
                 });
-                
+
                 rawFlightData = data_flights;
-                
+
                 flightData = d3.nest()
                     .key(function(d) { return d.AIRPORT; })
                     .rollup(function(v) { return {
@@ -100,117 +99,137 @@
                     })
                     .entries(rawFlightData);
                 flightData = flightData.sort(function (a,b) {return d3.descending(a.value.totalFlights, b.value.totalFlights); });
-                    
+
                 busiest20Airports = flightData.slice(0, 20);
-                
+
+                //busiest20Airports.splice(14, 1);
+
+                var NYCTotalDelays = 0,
+                    NYCTotalDelayMins = 0,
+                    NYCTotalCancellations = 0,
+                    NYCTotalFlights = 0,
+                    NYCTotalCarrierDelays = 0,
+                    NYCTotalWeatherDelays = 0,
+                    NYCTotalNASDelays = 0,
+                    NYCTotalSecurity = 0,
+                    NYCTotalLateAircraftDelays = 0;
+                    airportList = ["JFK", "LGA", "EWR"];
+
                 busiest20Airports.forEach(function(d) {
-                    airportDelayValues.push({"airport": d.key, "values": [{"delayType": "delayCarrier", "delayTotal": d.value.totalCarrierDelays}, {"delayType": "delayWeather", "delayTotal": d.value.totalWeatherDelays}, {"delayType": "delayNAS", "delayTotal": d.value.totalNASDelays}, {"delayType": "delaySecurity", "delayTotal": d.value.totalSecurity}, {"delayType": "delayLateAircraft", "delayTotal": d.value.totalLateAircraftDelays}]});
+                    if(airportList.indexOf(d.key) < 0) {
+                        mergedAirports.push(d);
+                    } else {
+                        NYCTotalDelays += d.value.totalDelays;
+                        NYCTotalDelayMins += d.value.totalDelayMins
+                        NYCTotalCancellations += d.value.totalCancellations;
+                        NYCTotalFlights += d.value.totalFlights;
+                        NYCTotalCarrierDelays += d.value.totalCarrierDelays;
+                        NYCTotalWeatherDelays += d.value.totalWeatherDelays;
+                        NYCTotalNASDelays += d.value.totalNASDelays;
+                        NYCTotalSecurity += d.value.totalSecurity;
+                        NYCTotalLateAircraftDelays += d.value.totalLateAircraftDelays;
+                    }
                 });
 
-                
-                var defs = map_svg.append('svg:defs');
-                
-                var allpatternDots = defs.selectAll(".patternDots")
-                    .data(colorScale.range())
-                  .enter().append('svg:pattern')
-                    .attr('id', function(d, i) { return "pattern-dots-" + i; })
-                    .attr('class', 'patternDots')
-                    .attr('width', 5)
-                    .attr('height', 5)
-                    .attr('patternUnits', 'userSpaceOnUse'); 
+                NYCTotalDelays /= airportList.length;
+                NYCTotalDelayMins /= airportList.length;
+                NYCTotalCancellations /= airportList.length;
+                NYCTotalFlights /= airportList.length;
+                NYCTotalCarrierDelays /= airportList.length;
+                NYCTotalWeatherDelays /= airportList.length;
+                NYCTotalNASDelays /= airportList.length;
+                NYCTotalSecurity /= airportList.length;
+                NYCTotalLateAircraftDelays /= airportList.length;
 
-                allpatternDots
-                  .append('svg:rect')
-                    .attr('width', 5)
-                    .attr('height', 5)
-                    .attr('fill', function(d, i) { return colorScale(i); });
-                allpatternDots
-                .append('svg:rect')
-                    .attr('x', 0)
-                    .attr('y', 0)
-                    .attr('width', 2)
-                    .attr('height', 2)
-                    .attr('fill',"black");
+                mergedAirports.push({"key": "NYC", "value": {"totalDelays": NYCTotalDelays, "totalDelayMins": NYCTotalDelayMins, "totalCancellations": NYCTotalCancellations, "totalFlights": NYCTotalFlights, "totalCarrierDelays": NYCTotalCarrierDelays, "totalWeatherDelays": NYCTotalWeatherDelays, "totalNASDelays": NYCTotalNASDelays, "totalSecurity": NYCTotalSecurity, "totalLateAircraftDelays": NYCTotalLateAircraftDelays}});
 
-                var allpatternDiagonals = defs.selectAll(".patternDiagonals")
-                    .data(colorScale.range())
-                  .enter().append('svg:pattern')
-                    .attr('id', function(d, i) { return "pattern-diagonal-" + i; })
-                    .attr('class', 'patternDiagonals')
-                    .attr('width', 5)
-                    .attr('height', 5)
-                    .attr('patternUnits', 'userSpaceOnUse'); 
+                var NYCLatitude = 0;
+                var NYCLongitude = 0;
 
-                allpatternDiagonals
-                  .append('svg:rect')
-                    .attr('width', 5)
-                    .attr('height', 5)
-                    .attr('fill', function(d, i) { return colorScale(i); });
-                allpatternDiagonals
-                  .append('svg:path')
-                    .attr('d', 'M-1,1 l2,-2 M0,5 l5,-5 M4,6 l2,-2')
-                    .attr('stroke', 'black')
-                    .attr('stroke-width', 1);
-                    
-                var allpatternHorizontal = defs.selectAll(".patternHorizontal")
-                    .data(colorScale.range())
-                  .enter().append('svg:pattern')
-                    .attr('id', function(d, i) { return "pattern-horizontal-" + i; })
-                    .attr('class', 'patternHorizontal')
-                    .attr('width', 10)
-                    .attr('height', 5)
-                    .attr('patternUnits', 'userSpaceOnUse'); 
+                airportList.forEach(function(d) {
+                    NYCLatitude += airportData[d][0];
+                    NYCLongitude += airportData[d][1];
+                });
 
-                allpatternHorizontal
-                  .append('svg:rect')
-                    .attr('width', 10)
-                    .attr('height', 5)
-                    .attr('fill', function(d, i) { return colorScale(i); });
-                allpatternHorizontal
-                .append('svg:rect')
-                    .attr('x', 0)
-                    .attr('y', 0)
-                    .attr('width', 10)
-                    .attr('height', 1)
-                    .attr('fill',"black");
-                    
-                var allpatternVertical = defs.selectAll(".patternVertical")
-                    .data(colorScale.range())
-                  .enter().append('svg:pattern')
-                    .attr('id', function(d, i) { return "pattern-vertical-" + i; })
-                    .attr('class', 'patternVertical')
-                    .attr('width', 5)
-                    .attr('height', 10)
-                    .attr('patternUnits', 'userSpaceOnUse'); 
+                airportData["NYC"] = [NYCLatitude/airportList.length, NYCLongitude/airportList.length];
 
-                allpatternVertical
-                  .append('svg:rect')
-                    .attr('width', 5)
-                    .attr('height', 10)
-                    .attr('fill', function(d, i) { return colorScale(i); });
-                allpatternVertical
-                .append('svg:rect')
-                    .attr('x', 0)
-                    .attr('y', 0)
-                    .attr('width', 1)
-                    .attr('height', 10)
-                    .attr('fill',"black")
-                    .style("opacity", 0.75);
                 var formatPercentage = d3.format('.0%')
-                
-                var temp = ["totalCarrierDelays", "totalWeatherDelays", "totalNASDelays", "totalSecurity", "totalLateAircraftDelays"];
 
-                var delayExtent = d3.extent(busiest20Airports, function(d) {return d.value.totalFlights});
-                
-                dExtent = delayExtent;
+                var delayExtent = d3.extent(mergedAirports, function(d) {return d.value.totalFlights});
+
                 delayScale = d3.scalePow().exponent(0.5)
                     .domain(delayExtent)
-                    .range([18, 30]);
-                
+                    .range([18, 35]);
+
+                fontScale = d3.scalePow().exponent(0.5)
+                    .domain(delayExtent)
+                    .range([10, 22]);
+
                 var pie = d3.pie().value(function(d){ return d }).sort(null);
-                
-                var pies = map_svg.selectAll('.airportPie')
-                    .data(busiest20Airports)
+
+                //var delayReasons = ["totalCarrierDelays", "totalWeatherDelays", "totalNASDelays", "totalLateAircraftDelays"];
+                var delayReasons = [{"delayReason": "totalCarrierDelays", "delayDescription": "Carrier Delays"}, {"delayReason": "totalWeatherDelays", "delayDescription": "Weather Delays"}, {"delayReason": "totalNASDelays", "delayDescription": "NAS Delays"}, {"delayReason": "totalLateAircraftDelays", "delayDescription": "Late Aircraft Delays"}];
+
+                var legendX = 50
+
+                map_svg.selectAll("legend_box").data(delayReasons)
+                    .enter()
+                    .append("rect")
+                    .attr("id", "legend_" + function(d) { return d.delayReason; })
+                    .attr("class", "legend_box")
+                    .attr("x", function(d, i) { legendX += 160; return legendX; })
+                    .attr("y", 20)
+                    .attr("width", 20)
+                    .attr("height", 20)
+                    .attr("fill", function(d, i) { return colorScale(i); });
+
+                d3.selectAll(".legend_box").each( function (d, i) {
+                    var legendBox = d3.select(this);
+                    map_svg.append("text")
+                        .attr("id", "legendText_" + d.delayReason)
+                        .attr("class", "legendLabels")
+                        .attr("x", Number(legendBox.attr("x")) + Number(legendBox.attr("width")))
+                        .attr("y", Number(legendBox.attr("y")) + (Number(legendBox.attr("height")/2)))
+                        .attr("dx", 5)
+                        .attr("text-anchor", "start")
+                        .attr("alignment-baseline", "middle")
+                        .attr('font-size', 14)
+                        .attr('font-weight',"bold")
+                        .text(d.delayDescription);
+                });
+
+                var legendPercent = map_svg.append("circle")
+                    .attr("id", "percentageLegend")
+                    .attr("r", 15)
+                    .attr("cx", 30)
+                    .attr("cy", 30)
+                    .attr("fill", "white")
+                    .attr('stroke', '#000')
+                    .attr('stroke-width', '1')
+                    .style("stroke-opacity", "0.5");
+
+                map_svg.append("text")
+                    .attr("id", "percentageTextLegend")
+                    .attr("x", legendPercent.attr("cx"))
+                    .attr("y", legendPercent.attr("cy"))
+                    .attr("text-anchor", "middle")
+                    .attr("alignment-baseline", "middle")
+                    .attr('font-size', 12)
+                    .attr('font-weight',"bold")
+                    .text("9%");
+
+                map_svg.append("text")
+                    .attr("id", "percentageTextLegend")
+                    .attr("x", Number(legendPercent.attr("cx")) + Number(legendPercent.attr("r")))
+                    .attr("y", legendPercent.attr("cy"))
+                    .attr("dx", 5)
+                    .attr("text-anchor", "start")
+                    .attr("alignment-baseline", "middle")
+                    .attr('font-size', 14)
+                    .attr('font-weight',"bold")
+                    .text("% Delayed Flights");
+
+                map_svg.selectAll('.airportPie').data(mergedAirports)
                     .enter()
                     .append('g')
                     .attr('class', 'airportPie')
@@ -220,50 +239,33 @@
                     .each(function(chartData, i) {
                         var pieRadius = delayScale(chartData.value.totalFlights);
                         var mapCoordinates = projection(airportData[chartData.key])
-                         var chartContainer = d3.select(this);// Selects the containing 'g'
-                         // The rest is what you already wrote
-                         chartContainer.selectAll("path")
-                            .data(pie([chartData.value.totalCarrierDelays, chartData.value.totalWeatherDelays, chartData.value.totalNASDelays, chartData.value.totalLateAircraftDelays]))
+                        var chartContainer = d3.select(this);// Selects the containing 'g'
+
+                        map_svg.append("circle")
+                            .attr("id", "circleBG_" + chartData.key)
+                            .attr("class", "circleBackgrounds")
+                            .attr("r", pieRadius - 8)
+                            .attr("cx", mapCoordinates[0])
+                            .attr("cy", mapCoordinates[1])
+                            .attr("fill", "white");
+
+                        var delayTotalsData = []
+                        delayReasons.forEach(function(reason){
+                            delayTotalsData = delayTotalsData.concat(chartData.value[reason.delayReason]);
+                        });
+
+                        chartContainer.selectAll("path")
+                            .data(pie(delayTotalsData))
                             .enter()
                             .append("path")
-                            .attr("d", d3.arc().innerRadius(pieRadius - 9).outerRadius(pieRadius))
+                            .attr("d", d3.arc().innerRadius(pieRadius - 7).outerRadius(pieRadius))
                             .attr("class", "arc")
-                            .style('fill', function(d, i) { return "url(#pattern-dots-" + i + ")"; })
+                            .style('fill', function(d, i) { return colorScale(i); })
                             .attr('stroke', '#fff')
                             .attr('stroke-width', '1')
                             .style("stroke-opacity", "0.75")
                             .attr("class", "arc");
-                            
-                        var pattern = map_svg.append('defs')
-                            .append('pattern')
-                                .attr('id', 'diagonalHatch')
-                                .attr('patternUnits', 'userSpaceOnUse')
-                                .attr('width', 4)
-                                .attr('height', 4)
-                            .append('path')
-                                .attr('d', 'M6,6 l2,0 l0,2 l-2,0 L0,-2Z')
-                                .attr('stroke', '#000000')
-                                .attr('stroke-width', 2);
-                        
-                        map_svg.append("text")
-                            .attr("id", "label_" + chartData.key)
-                            .attr("class", "airportLabels")
-                            .attr("x", mapCoordinates[0])
-                            .attr("y", mapCoordinates[1])
-                            .attr("text-anchor", "middle")
-                            .attr("alignment-baseline", "hanging")
-                            .attr("dy", pieRadius + 2)
-                            .text(chartData.key);
-                        
-                        map_svg.append("circle")
-                            .attr("id", "circleBG_" + chartData.key)
-                            .attr("class", "circleBackgrounds")
-                            .attr("r", pieRadius - 10)
-                            .attr("cx", mapCoordinates[0])
-                            .attr("cy", mapCoordinates[1])
-                            .attr("fill", "white")
-                            .style("opacity", 0.9);
-                
+
                         map_svg.append("text")
                             .attr("id", "delayPercentage_" + chartData.key)
                             .attr("class", "delayPercentages")
@@ -271,10 +273,20 @@
                             .attr("y", mapCoordinates[1])
                             .attr("text-anchor", "middle")
                             .attr("alignment-baseline", "middle")
-                            .attr('font-size', 10)
+                            .attr('font-size', fontScale(chartData.value.totalFlights))
                             .attr('font-weight',"bold")
                             .text(formatPercentage(chartData.value.totalDelays/chartData.value.totalFlights));
-                    }); 
+
+                        map_svg.append("text")
+                            .attr("id", "label_" + chartData.key)
+                            .attr("class", "airportLabels")
+                            .attr("x", mapCoordinates[0])
+                            .attr("y", mapCoordinates[1])
+                            .attr("text-anchor", "middle")
+                            .attr("alignment-baseline", "hanging")
+                            .attr("dy", pieRadius + 5 )
+                            .text(chartData.key);
+                    });
             }
         </script>
     </body>
