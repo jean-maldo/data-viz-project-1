@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<title>Flight Delays and Cancellations in 2016</title>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<style>
+    svg {border: 1px solid black}
+    .point { fill: black; }
+    path.trajectory { fill: none; }
+    path.state { fill: #eee; stroke: #aaa;; }
+</style>
+<body>  <div id="bar">Cancellation and delays by airlines
+    <br />
+    <svg id="airline_delays" height="500" width="800">
+    </svg>
+</div>
+
+<script>
+    var svg = d3.select("#bar_delays");
+
+
+    var totalFlightsByline;
+    var totalDelayByline;
+    var totalCancellByline;
+    var delayMins;
+    var carrierDelays;
+    var weatherDelays;
+    var nasDelays;
+    var securityDelays;
+    var lateaircraftDelays;
+    var busiest20Airlines;
+
+
+    var rawDataLine;
+    var airlineData;
+
+   function parseLineairline(line){
+       return {
+           totalDelayByline: line["TOTAL_DELAYS"],
+           totalCancellByline: line["CANCELLED_TOTAL"],
+           delayMins: line["DELAY_MINS_TOTAL"],
+           totalFlightsByline: line["TOTAL_FLIGHTS"],
+           carrierDelays:  line["CARRIER_DELAY_TOTAL"],
+           weatherDelays:  line["WEATHER_DELAY_TOTAL"],
+           nasDelays:  line["NAS_DELAY_TOTAL"],
+           securityDelays:  line["SECURITY_DELAY_TOTAL"],
+           lateaircraftDelays: line["LATE_AIRCRAFT_DELAY_TOTAL"];
+       }
+
+    d3.csv ("flights_by_airline_2016.csv",parseLineairline,function(error,data){
+        rawDataLine = data;
+        console.log("Code in the call-back function is only executed when the data file loads.");
+
+
+        airlineData = d3.nest()
+            .key(function(d) { return d.AIRLINE; })
+            .rollup(function(v) { return {
+                totalDelayByline: d3.sum(v, function(d) { return d.TOTAL_DELAYS; }),
+                delayMins: d3.sum(v, function(d) { return d.DELAY_MINS_TOTAL; }),
+                totalCancellByline: d3.sum(v, function(d) { return d.CANCELLED_TOTAL; }),
+                totalFlightsByline: d3.sum(v, function(d) { return d.TOTAL_FLIGHTS; })
+            };
+            })
+            .entries(rawDataLine);
+
+        airlineData = airlineData.sort(function (a,b) {return d3.descending(a.value.totalFlights, b.value.totalFlights); });
+
+        busiest20Airlines = airlineData.slice(0, 20);
+        });
+
+
+
+
+</script>
+
+</body>
+</html>
