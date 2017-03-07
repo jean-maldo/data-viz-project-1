@@ -7,37 +7,81 @@
 <title>Flight Delays and Cancellations in 2016</title>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="d3-symbol-extra.js"></script>
-<script bower install textures></script>
+
+<script>
+
+    var symbol = d3.symbol().size(1000).type(d3.symbolPentagon);
+    d3.select('svg').append('path')
+        .attr('transform', 'translate(50, 50)')
+        .attr('d', function(d, i) {
+            return symbol();
+        });
+
+</script>
 <style>
-    svg {border: 1px solid darkgrey;}
-    .point { fill: gray; }
-    .arrow{
-        stroke-width:5;
-        stroke:#000;
-        stroke-dasharray:5, 5;
+    svg {
+        border: 1px solid darkgrey;
+        position: relative;
+
     }
 
-</style>
+    h1, h2, h3, .brand-logo {
+        font-family: 'Bungee', Helvetica, Arial;
+        color: var(--font-color);
+    }
 
-<style>
+    h2 {
+        font-size: 1.5em;
+    }
+
+    h3 {
+        font-size: 1em;
+    }
+
+    body {
+        font-family: 'Nunito', Helvetica, Arial;
+        font-weight: 300;
+        font-size: 1.0em;
+        line-height: 1.8em;
+        min-width: 340px;
+
+        color: var(--font-color);
+    }
+
+    strong {
+        font-weight: 700;
+    }
+
+    div {
+        background-color: #f7f7f7;
+        width: 1000px;
+        border: 5px plum;
+        padding: 5px;
+        margin: 10px;
+    }
 
     .filled {
         fill: url(#mainGradient);
     }
 
     .outlined {
-        fill:   none;
+        fill: none;
         stroke: url(#mainGradient);
         stroke-width: 4;
     }
 </style>
-<body>  <div id="bar">Cancellation and delays by airlines
-    <br />
-    <svg id="airline_delays" height="800" width="1000">
-        <line x1="15" y1="770" x2="950" y2="770" style="stroke:gray;stroke-width:4"></line>
-    </svg>
-</div>
 
+<body><h2>Cancellation and Delays by Airlines</h2>
+<div> This graph shows the cancellation and delays of flights from the top 10 airlines (most flights) for 2016 in the USA. The airline carriers
+    are ranked in decreasing order by the number of flights in 2016. The purple bars on the left show the number of cancellations.The bars
+    on the right side show the number of delays in 2016, and the numbers in the middle of the bars represent the average length of the delay.
+    The patterns of the delay bars correspond to the most frequent cause of delay.
+
+
+
+    </div>
+
+<svg id="airline_delays" height="800" width="1000"></svg>
 <script>
     var svg2 = d3.select("#airline_delays");
 
@@ -58,7 +102,7 @@
     var rawDataLine;
     var airlineData=[];
     var top10Airline;
-
+    var legend=[];
 
     var svgDefs = svg2.append('defs');
 
@@ -201,28 +245,60 @@
             .range([60, 360]);
 
         // add texts of axises:
+
+
         svg2.append("text")
-            .text("Number of Delays")
-            .attr("x",  700)
-            .attr("y",  790)
-            .style("font-size","15pt")
-            .style("fill","black");
+            .text("Average Length & Number of Delays")
+            .attr("x",  630)
+            .attr("y",  75)
+            .style("font-size","16pt")
+            .style("fill","gray");
 
         svg2.append("text")
             .text("Number of Cancellations")
-            .attr("x",  200)
-            .attr("y",  790)
-            .style("font-size","15pt")
-            .style("fill","black");
+            .attr("x",  70)
+            .attr("y", 75)
+            .style("font-size","16pt")
+            .style("fill","gray");
 
-        // add axises
-//
-//        var xAxis1 = d3.axisBottom(delaysScale).ticks(5);
-//        var yAxis = d3.axisLeft(flightScale).ticks(5);
-//        var plot = svg2.append("g").attr("transform","translate(520,20)");
-//        plot.append("g").attr("class","axis").call(xAxis1).attr("transform","translate(0,145)");
-//        plot.append("g").attr("class","axis").call(yAxis).attr("transform","translate(0,-5)");
 
+
+        // add Legend texts
+        svg2.append("text")
+            .text("Main Cause of Delays")
+            .attr("x",810)
+            .attr("y", 635)
+            .attr("fill", "black")
+            .style("font-size", "8pt");
+        svg2.append("text")
+            .text("Late aircraft")
+            .attr("x",815)
+            .attr("y", 665)
+            .attr("fill", "black")
+            .style("font-size", "8pt");
+        svg2.append("text")
+            .text("Carrier")
+            .attr("x",815)
+            .attr("y", 700)
+            .attr("fill", "black")
+            .style("font-size", "8pt");
+        svg2.append("text")
+            .text("NAS")
+            .attr("x",815)
+            .attr("y", 735)
+            .attr("fill", "black")
+            .style("font-size", "8pt");
+
+        // add frame of Legends
+        svg2.append("rect")
+            .attr("id","legendframe")
+            .attr("x", 765)
+            .attr("y", 620)
+            .attr("width", 160)
+            .attr("height", 130)
+            .style("fill", "none")
+            .style("stroke","gray")
+            .style("stroke-width","1pt");
 
 
 //Append a defs (for definition) element to  SVG
@@ -241,7 +317,6 @@
             .attr("y2", "100%");
 
 
-
 //Set the color for the start (0%)
         linearGradient.append("stop")
             .attr("offset", "0%")
@@ -251,8 +326,6 @@
         linearGradient.append("stop")
             .attr("offset", "100%")
             .attr("stop-color", "#bdbdbd"); //light
-
-
 
         var recVerticle = svg2
             .append("rect")
@@ -268,10 +341,31 @@
         var triangle = d3.symbol().size(5500).type(d3.symbolTriangle);
 
         var triangleArrow = svg2
-            .append("path")
+            .append('path')
             .attr("transform", "translate(500,35)")
             .attr("d", triangle)
             .style("fill", "#636363");
+
+        svg2.append("text")
+            .text("Airline")
+            .attr("x", 474)
+            .attr("y", 55)
+            .style("font-size","16pt")
+            .style("fill","#feb24c");
+
+        svg2.append("text")
+            .text("95121 Flights")
+            .attr("x",474)
+            .attr("y", 765)
+            .attr("fill", "black")
+            .style("font-size", "7pt");
+
+        svg2.append("text")
+            .text("129944 Flights")
+            .attr("x",470)
+            .attr("y", 150)
+            .attr("fill", "black")
+            .style("font-size", "7pt");
 
 // delay bars
 
@@ -300,6 +394,9 @@
                     return "pink";
                 } );
         });
+
+
+
 // cancellation bars
         top10Airline.forEach(function (d) {
 
@@ -350,7 +447,7 @@
                 .attr("y", function (d, i) {
                     return 125 + i * 68;
                 })
-                .attr("fill", "black")
+                .attr("fill", "purple")
                 .style("font-size", "10pt");
         });
 // delays Text
@@ -360,7 +457,7 @@
                 .enter()
                 .append("text")
                 .text(function (d) {
-                    return +d.value.totalDelayByline + " flights";
+                    return +d.value.totalDelayByline;
                 })
                 .attr("x", function (d) {
                     return 555 + delaysScale(d.value.totalDelayByline);
@@ -378,7 +475,7 @@
                 .enter()
                 .append("text")
                 .text(function (d) {
-                    return +d.value.totalCancellByline + " flights";
+                    return +d.value.totalCancellByline;
                 })
                 .attr("x", function (d) {
                     return 400 - cancellsScale(d.value.totalCancellByline);
@@ -484,11 +581,31 @@
             .attr('height', 10)
             .attr('fill',"gray")
             .style("opacity", 0.75);
+// add Legends
+        var legend = ["Late aircraft","Carrier","NAS"];
 
-//            });
-//        };
+        legend.forEach(function (d, i) {
+            var ptns = ['dots', 'vertical', 'horizontal', 'diagonal'];
+
+            svg2.selectAll("rect5")
+                .data(legend)
+                .enter()
+                .append("rect")
+                .attr("x", 780)
+                .attr("y", function (d, i) {
+                    return 650 + i * 34;
+                })
+                .attr("width", 25)
+                .attr("height",25)
+                .attr("fill", function (d,i){
+                    if(i==0)
+                        return "pink";
+                    return "url(#pattern-" + ptns[i-1] + "-1)";
+                } );
+        });
+
+
     };
-
 
 
 
