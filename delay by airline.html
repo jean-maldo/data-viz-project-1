@@ -6,7 +6,6 @@
 </head>
 <title>Flight Delays and Cancellations in 2016</title>
 <script src="https://d3js.org/d3.v4.min.js"></script>
-<script src="d3-symbol-extra.js"></script>
 
 <script>
 
@@ -83,28 +82,16 @@
 
 <svg id="airline_delays" height="800" width="1000"></svg>
 <script>
-    var svg2 = d3.select("#airline_delays");
-
-
-    var totalFlightsByline;
-    var totalDelayByline;
-    var totalCancellByline;
-    var delayMins;
-    var carrierDelays;
-    var weatherDelays;
-    var nasDelays;
-    var securityDelays;
-    var lateaircraftDelays;
-    var rankAirlines;
+    var svg_barchart = d3.select("#airline_delays");
+    
     var tempArray = {};
     var reasons = ["carrierDelays", "lateAircraftDelays", "nasDelays", "securityDelays", "weatherDelays"]
 
-    var rawDataLine;
-    var airlineData=[];
+    var rawDataAirlines;
+    var airlineDataByDelays=[];
     var top10Airline;
-    var legend=[];
 
-    var svgDefs = svg2.append('defs');
+    var svgDefs = svg_barchart.append('defs');
 
     var mainGradient = svgDefs.append('linearGradient')
         .attr('id', 'mainGradient');
@@ -132,11 +119,11 @@
         return line;
     }
 
-       d3.csv("flights_by_airline_2016.csv",parseFlightsLine,function(data){
-        rawDataLine = data;
+       d3.csv("data/processed/flights_by_airline_2016.csv",parseFlightsLine,function(data){
+        rawDataAirlines = data;
         console.log("Code in the call-back function is only executed when the data file loads.");
 
-        airlineData = d3.nest()
+        airlineDataByDelays = d3.nest()
             .key(function(d) { return d.AIRLINE; })
             .rollup(function(v) {
                 return {
@@ -169,11 +156,11 @@
                     })
                 };
             })
-            .entries(rawDataLine);
+            .entries(rawDataAirlines);
 
-         airlineData = airlineData.sort(function (a,b) {return d3.descending(a.value.totalFlightsByline, b.value.totalFlightsByline); });
+         airlineDataByDelays = airlineDataByDelays.sort(function (a,b) {return d3.descending(a.value.totalFlightsByline, b.value.totalFlightsByline); });
 
-         top10Airline = airlineData.slice(0,10);
+         top10Airline = airlineDataByDelays.slice(0,10);
 
 
          //var tempArray = [];
@@ -247,14 +234,14 @@
         // add texts of axises:
 
 
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("Average Length & Number of Delays")
             .attr("x",  630)
             .attr("y",  75)
             .style("font-size","16pt")
             .style("fill","gray");
 
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("Number of Cancellations")
             .attr("x",  70)
             .attr("y", 75)
@@ -264,25 +251,25 @@
 
 
         // add Legend texts
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("Main Cause of Delays")
             .attr("x",810)
             .attr("y", 635)
             .attr("fill", "black")
             .style("font-size", "8pt");
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("Late aircraft")
             .attr("x",815)
             .attr("y", 665)
             .attr("fill", "black")
             .style("font-size", "8pt");
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("Carrier")
             .attr("x",815)
             .attr("y", 700)
             .attr("fill", "black")
             .style("font-size", "8pt");
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("NAS")
             .attr("x",815)
             .attr("y", 735)
@@ -290,7 +277,7 @@
             .style("font-size", "8pt");
 
         // add frame of Legends
-        svg2.append("rect")
+        svg_barchart.append("rect")
             .attr("id","legendframe")
             .attr("x", 765)
             .attr("y", 620)
@@ -302,7 +289,7 @@
 
 
 //Append a defs (for definition) element to  SVG
-        var defs = svg2.append("defs");
+        var defs = svg_barchart.append("defs");
 
 //Append a linearGradient element to the defs and give it a unique id
         var linearGradient = defs.append("linearGradient")
@@ -327,7 +314,7 @@
             .attr("offset", "100%")
             .attr("stop-color", "#bdbdbd"); //light
 
-        var recVerticle = svg2
+        var recVerticle = svg_barchart
             .append("rect")
 
             .attr("id","ppp")
@@ -340,27 +327,27 @@
 // add arrow for flights bar
         var triangle = d3.symbol().size(5500).type(d3.symbolTriangle);
 
-        var triangleArrow = svg2
+        var triangleArrow = svg_barchart
             .append('path')
             .attr("transform", "translate(500,35)")
             .attr("d", triangle)
             .style("fill", "#636363");
 
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("Airline")
             .attr("x", 474)
             .attr("y", 55)
             .style("font-size","16pt")
             .style("fill","#feb24c");
 
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("95121 Flights")
             .attr("x",474)
             .attr("y", 765)
             .attr("fill", "black")
             .style("font-size", "7pt");
 
-        svg2.append("text")
+        svg_barchart.append("text")
             .text("129944 Flights")
             .attr("x",470)
             .attr("y", 150)
@@ -375,7 +362,7 @@
         top10Airline.forEach(function (d) {
             var ptns = ['dots', 'vertical', 'horizontal', 'diagonal'];
             colorScale.domain(d.key);
-            svg2.selectAll("rect2")
+            svg_barchart.selectAll("rect2")
                 .data(top10Airline)
                 .enter()
                 .append("rect")
@@ -400,7 +387,7 @@
 // cancellation bars
         top10Airline.forEach(function (d) {
 
-            svg2.selectAll("rect3")
+            svg_barchart.selectAll("rect3")
                 .data(top10Airline)
                 .enter()
                 .append("rect")
@@ -418,7 +405,7 @@
         });
 // Airline Name Text
         top10Airline.forEach(function (d) {
-            svg2.selectAll("text5")
+            svg_barchart.selectAll("text5")
                 .data(top10Airline)
                 .enter()
                 .append("text")
@@ -434,7 +421,7 @@
         });
 // Average delay time Text
         top10Airline.forEach(function (d) {
-            svg2.selectAll("text2")
+            svg_barchart.selectAll("text2")
                 .data(top10Airline)
                 .enter()
                 .append("text")
@@ -452,7 +439,7 @@
         });
 // delays Text
         top10Airline.forEach(function (d) {
-            svg2.selectAll("text3")
+            svg_barchart.selectAll("text3")
                 .data(top10Airline)
                 .enter()
                 .append("text")
@@ -470,7 +457,7 @@
         });
 // Cancellations Text
         top10Airline.forEach(function (d) {
-            svg2.selectAll("text4")
+            svg_barchart.selectAll("text4")
                 .data(top10Airline)
                 .enter()
                 .append("text")
@@ -497,7 +484,7 @@
         };
 
         // texture patterns
-        var defs2 = svg2.append('svg:defs');
+        var defs2 = svg_barchart.append('svg:defs');
 
         var allpatternDots = defs2.selectAll(".patternDots")
             .data(colorScale.range())
@@ -587,7 +574,7 @@
         legend.forEach(function (d, i) {
             var ptns = ['dots', 'vertical', 'horizontal', 'diagonal'];
 
-            svg2.selectAll("rect5")
+            svg_barchart.selectAll("rect5")
                 .data(legend)
                 .enter()
                 .append("rect")
