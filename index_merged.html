@@ -76,9 +76,12 @@
             </svg>
         </div>
 
+        <h2>Average Delays by Airlines</h2>
+        <div> The graph presents the annual average of delay time for 12 airlines in the U.S. in 2016. Each line represents the trend of the change of delay time in different days in a week. The linewidth means the total number of flights for each airline in 2016, and these 12 airlines are labeled with different colors.
 
-        <div id="lineGraph">Average Delays by Airlines
-            <br />
+            </div>
+        <!-- <div id="lineGraph">Average Delays by Airlines
+            <br /> -->
             <svg id="lineGraph_dalays" height="450" width="820">
               <path d=" M 560 50
                 L 560 350"
@@ -86,7 +89,7 @@
                 stroke-opacity=0.5
                 stroke-dasharray="5,5"  />
             </svg>
-        </div>
+        <!-- </div> -->
 <h2>Cancellation and Delays by Airlines</h2>
 <div> This graph shows the cancellation and delays of flights from the top 10 airlines (most flights) for 2016 in the USA. The airline carriers
     are ranked in decreasing order by the number of flights in 2016. The purple bars on the left show the number of cancellations.The bars
@@ -100,6 +103,7 @@
             var map_svg = d3.select("#map_delays");
             var svg_lineGraph = d3.select("#lineGraph_dalays");
             var svg_barchart = d3.select("#airline_delays");
+
 
             // color scales
             var colorScale_lineGraph = d3.scaleOrdinal(d3.schemeCategory20);
@@ -461,12 +465,29 @@
                     })
                     .entries(rawDataAirline);
 
+                    airlineDataByDelays = d3.nest()
+                        .key(function(d) { return d.AIRLINE; })
+                        .rollup(function(v) {
+                            return {
+                                totalDelayByline: d3.sum(v, function (d) {return d.TOTAL_DELAYS;}),
+                                delayMins: d3.sum(v, function (d) {return d.DELAY_MINS_TOTAL;}),
+                                totalCancellByline: d3.sum(v, function (d) {return d.CANCELLED_TOTAL;}),
+                                totalFlightsByline: d3.sum(v, function (d) {return d.TOTAL_FLIGHTS;}),
+                                carrierDelays: d3.sum(v, function (d) {return d.CARRIER_DELAY_TOTAL;}),
+                                weatherDelays: d3.sum(v, function (d) {return d.WEATHER_DELAY_TOTAL;}),
+                                nasDelays: d3.sum(v, function (d) {return d.NAS_DELAY_TOTAL;}),
+                                securityDelays: d3.sum(v, function (d) {return d.SECURITY_DELAY_TOTAL;}),
+                                lateAircraftDelays: d3.sum(v, function (d) {return d.LATE_AIRCRAFT_DELAY_TOTAL})
+                            };
+                        })
+                        .entries(rawDataAirline);
+
                     dailyFlightData.forEach(function(d) {
 
                         airlineDataByDay.push({"airline": d.key, "values": [{"Day": "Sunday", "avg": d.value.hoursDelaySun/d.value.totalDelaySun}, {"Day": "Monday", "avg": d.value.hoursDelayMon/d.value.totalDelayMon}, {"Day": "Tuesday", "avg": d.value.hoursDelayTue/d.value.totalDelayTue}, {"Day": "Wednesday", "avg": d.value.hoursDelayWed/d.value.totalDelayWed}, {"Day": "Thursday", "avg": d.value.hoursDelayThu/d.value.totalDelayThu}, {"Day": "Friday", "avg": d.value.hoursDelayFri/d.value.totalDelayFri}, {"Day": "Saturday", "avg": d.value.hoursDelaySat/d.value.totalDelaySat}]});
                     });
 
-                    //dailyFlightData= dailyFlightData.sort(function (a,b) {return d3.descending(a.values[6].avg, b.values[6].avg); });
+                    airlineDataByDay= airlineDataByDay.sort(function (a,b) {return d3.descending(a.values[6].avg, b.values[6].avg); });
 
                     // Scales and axis
                       var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -882,6 +903,15 @@
                     });
                 }
                 
+                var rank = [1,14.3,2,1,18.3,3.8,19.8,2.1,0.9,15.1,4.1,1.1];
+                var airlineRank = [];
+                airlineDataByDelays.forEach(function(d) {
+                  airlineRank[d.key] = d.value.totalFlightsByline
+                  // airlineRank.push({"airline": d.key,"number": d.value.totalFlightsByline});
+                });
+
+                var rankScale = d3.scaleLog().domain([69000, 1300000]).range([1, 12]);;
+
                 function lineGraphTrends(data) {
                     // Create or modify paths for each airline
                     var paths = plot_lineGraph.selectAll("path.lineGraph").data(data);
@@ -896,6 +926,10 @@
                             lineColor = colorScale_lineGraph(i);
                             return colorScale_lineGraph(i);
                         })
+                        .style("stroke-width", function(d,i){
+                            return rankScale(airlineRank[d.airline]);
+                        })
+                        .style("stroke-opacity",0.6);
                 }
 
                 // Show the line graph legend and trend lines
