@@ -101,6 +101,9 @@
             var svg_lineGraph = d3.select("#lineGraph_dalays");
             var svg_barchart = d3.select("#airline_delays");
             
+            var width_barchart = svg_barchart.attr("width");
+            var height_barchart = svg_barchart.attr("height");
+            
             // color scales
             var colorScale_lineGraph = d3.scaleOrdinal(d3.schemeCategory20);
             var colorScale_map = d3.scaleOrdinal(d3.schemeCategory10);
@@ -125,7 +128,377 @@
 
                 return airportData[line.IATA] = [line.LONGITUDE, line.LATITUDE];
             }
+                
+            function barChartTrends (top10Airline) {
+                
+                var flightsExtent = d3.extent(top10Airline, function (d) {
+                    return d.value.totalFlightsByline;
+                });
+
+                var flightScale = d3.scaleLinear()
+                    .domain(flightsExtent)
+                    .range([30, 800]);
+
+
+                var delaysExtent = d3.extent(top10Airline,
+                    function (d) {
+                        return d.value.totalDelayByline;
+                    });
+
+                var delaysScale = d3.scaleSqrt()
+                    .domain(delaysExtent)
+                    .range([60, 360]);
+
+
+                var cancellsExtent = d3.extent(top10Airline,
+                    function (d) {
+                        return d.value.totalCancellByline;
+                    });
+
+                var cancellsScale = d3.scaleSqrt()
+                    .domain(cancellsExtent)
+                    .range([60, 360]);
+
+                // add texts of axises:
+
+
+                svg_barchart.append("text")
+                    .text("Average Length & Number of Delays")
+                    .attr("x",  630)
+                    .attr("y",  75)
+                    .style("font-size","16pt")
+                    .style("fill","gray");
+
+                svg_barchart.append("text")
+                    .text("Number of Cancellations")
+                    .attr("x",  70)
+                    .attr("y", 75)
+                    .style("font-size","16pt")
+                    .style("fill","gray");
+
+
+
+                // add Legend texts
+                svg_barchart.append("text")
+                    .text("Main Cause of Delays")
+                    .attr("x",810)
+                    .attr("y", 635)
+                    .attr("fill", "black")
+                    .style("font-size", "8pt");
+                svg_barchart.append("text")
+                    .text("Late aircraft")
+                    .attr("x",815)
+                    .attr("y", 665)
+                    .attr("fill", "black")
+                    .style("font-size", "8pt");
+                svg_barchart.append("text")
+                    .text("Carrier")
+                    .attr("x",815)
+                    .attr("y", 700)
+                    .attr("fill", "black")
+                    .style("font-size", "8pt");
+                svg_barchart.append("text")
+                    .text("NAS")
+                    .attr("x",815)
+                    .attr("y", 735)
+                    .attr("fill", "black")
+                    .style("font-size", "8pt");
+
+                // add frame of Legends
+                svg_barchart.append("rect")
+                    .attr("id","legendframe")
+                    .attr("x", 765)
+                    .attr("y", 620)
+                    .attr("width", 160)
+                    .attr("height", 130)
+                    .style("fill", "none")
+                    .style("stroke","gray")
+                    .style("stroke-width","1pt");
+
+
+                //Append a defs (for definition) element to  SVG
+                var defs = svg_barchart.append("defs");
+
+                //Append a linearGradient element to the defs and give it a unique id
+                var linearGradient = defs.append("linearGradient")
+                        .attr("id", "linear-gradient");
+
+
+                //Vertical gradient
+                linearGradient
+                    .attr("x1", "0%")
+                    .attr("y1", "0%")
+                    .attr("x2", "0%")
+                    .attr("y2", "100%");
+
+
+                //Set the color for the start (0%)
+                linearGradient.append("stop")
+                    .attr("offset", "0%")
+                    .attr("stop-color", "#636363"); //dark purple
+
+                //Set the color for the end (100%)
+                linearGradient.append("stop")
+                    .attr("offset", "100%")
+                    .attr("stop-color", "#bdbdbd"); //light
+                
+                var yAxisRectWidth = 70;
+                var top_offset = 90;
+                var side_offset = 30;
+                
+                var recVerticle = svg_barchart
+                    .append("rect")
+                    .attr("id","yScaleGraphic")
+                    .attr("x", width_barchart/2 - yAxisRectWidth/2)
+                    .attr("y", top_offset)
+                    .attr("width", yAxisRectWidth)
+                    .attr("height", height_barchart - top_offset)
+                    .style("fill", "url(#linear-gradient)");
+
+                var triangle_size = 65;
+                // add arrow for flights bar
+                var triangle = d3.symbol().size(triangle_size*triangle_size).type(d3.symbolTriangle);
+
+                var triangleArrow = svg_barchart
+                    .append('path')
+                    .attr("transform", "translate(" + width_barchart/2 + "," + triangle_size + ")")
+                    .attr("d", triangle)
+                    .style("fill", "#636363");
+
+                svg_barchart.append("text")
+                    .text("Airline")
+                    .attr("x", width_barchart/2)
+                    .attr("y", top_offset/2)
+                    .attr("dy", triangle_size/3)
+                    .attr("alignment-baseline", "hanging")
+                    .attr("text-anchor", "middle")
+                    .style("font-size","16pt")
+                    .style("fill","#feb24c");
+
+                svg_barchart.append("text")
+                    .text("95121 Flights")
+                    .attr("x",474)
+                    .attr("y", 765)
+                    .attr("fill", "black")
+                    .style("font-size", "7pt");
+
+                svg_barchart.append("text")
+                    .text("129944 Flights")
+                    .attr("x",470)
+                    .attr("y", 150)
+                    .attr("fill", "black")
+                    .style("font-size", "7pt");
+
+                // delay bars
+
+
+                //var colorScale = d3.scaleOrdinal(['#fde0dd','#fa9fb5','#c51b8a']);
+
+                var height_y_axis = height_barchart - top_offset;
+                var bar_area = height_y_axis/top10Airline.length;
+                top10Airline.forEach(function (d) {
+                    svg_barchart.selectAll("rect2")
+                        .data(top10Airline)
+                        .enter()
+                        .append("rect")
+                        .attr("x", width_barchart/2 + yAxisRectWidth/2)
+                        .attr("y", function (d, i) {
+                            return top_offset + 10 + i * bar_area;
+                        })
+                        .attr("width", function (d) {
+                            return delaysScale(d.value.totalDelayByline);
+                        })
+                        .attr("height", bar_area/3*2)
+                        .attr("fill", function (d){
+                            return "url(#pattern-" + reasons.indexOf(tempArray[d.key]) + ")";
+                        });
+                    });
+
+            // cancellation bars
+            top10Airline.forEach(function (d) {
+
+                svg_barchart.selectAll("rect3")
+                    .data(top10Airline)
+                    .enter()
+                    .append("rect")
+                    .attr("x", function (d) {
+                        return width_barchart/2 - yAxisRectWidth/2 - cancellsScale(d.value.totalCancellByline);
+                    })
+                    .attr("y", function (d, i) {
+                        return top_offset + 10 + i * bar_area;
+                    })
+                    .attr("width", function (d) {
+                        return cancellsScale(d.value.totalCancellByline);
+                    })
+                    .attr("height", bar_area/3*2)
+                    .attr("fill", "#c994c7");
+                });
+                // Airline Name Text
+                top10Airline.forEach(function (d) {
+                    svg_barchart.selectAll(".airlineLabel")
+                        .data(top10Airline)
+                        .enter()
+                        .append("text")
+                        .text(function (d) {
+                            return d.key;
+                        })
+                        .attr("x", width_barchart/2)
+                        .attr("y", function (d, i) {
+                            return top_offset + (bar_area/2) + i * (bar_area);
+                        })
+                        .attr("alignment-baseline", "middle")
+                        .attr("text-anchor", "middle")
+                        .attr("fill", "white")
+                        .style("font-size", "15pt");
+                    });
+                
+                // Average delay time Text
+                top10Airline.forEach(function (d) {
+                    svg_barchart.selectAll("text2")
+                        .data(top10Airline)
+                        .enter()
+                        .append("text")
+                        .text(function (d) {
+                            return +Math.round((d.value.delayMins / d.value.totalDelayByline), 0) + " Mins";
+                        })
+                        .attr("x", function (d) {
+                            return 520 + delaysScale(d.value.totalDelayByline) / 2
+                        })
+                        .attr("y", function (d, i) {
+                            return 125 + i * 68;
+                        })
+                        .attr("fill", "purple")
+                        .style("font-size", "10pt");
+                    });
+            // delays Text
+            top10Airline.forEach(function (d) {
+                svg_barchart.selectAll("text3")
+                    .data(top10Airline)
+                    .enter()
+                    .append("text")
+                    .text(function (d) {
+                        return +d.value.totalDelayByline;
+                    })
+                    .attr("x", function (d) {
+                        return 555 + delaysScale(d.value.totalDelayByline);
+                    })
+                    .attr("y", function (d, i) {
+                        return 125 + i * 68;
+                    })
+                    .attr("fill", "black")
+                    .style("font-size", "8pt");
+                });
+            // Cancellations Text
+            top10Airline.forEach(function (d) {
+                svg_barchart.selectAll("text4")
+                    .data(top10Airline)
+                    .enter()
+                    .append("text")
+                    .text(function (d) {
+                        return +d.value.totalCancellByline;
+                    })
+                    .attr("x", function (d) {
+                        return 400 - cancellsScale(d.value.totalCancellByline);
+                    })
+                    .attr("y", function (d, i) {
+                        return 125 + i * 68;
+                    })
+                    .attr("fill", "black")
+                    .style("font-size", "8pt");
+                });
             
+            function delayReason() {
+                return {
+                    "carrierDelays": 0,
+                    "weatherDelays": 0,
+                    "nasDelays": 0,
+                    "securityDelays": 0,
+                    "lateAircraftDelays": 0
+                };
+            }
+
+            // texture patterns
+            var patternDefinitions = svg_barchart.append('svg:defs');
+
+            var allpatternDots = patternDefinitions
+                .append('svg:pattern')
+                .attr('id', "pattern-0")
+                .attr('class', 'patternDots')
+                .attr('width', 10)
+                .attr('height', 10)
+                .attr('patternUnits', 'userSpaceOnUse');
+            allpatternDots
+                .append('svg:rect')
+                .attr('width', 10)
+                .attr('height', 10)
+                .attr('fill', "pink");
+            allpatternDots
+                .append('svg:rect')
+                .attr('x', 4)
+                .attr('y', 4)
+                .attr('width', 2)
+                .attr('height', 2)
+                .attr('fill',"gray");
+
+            var allpatternVertical = patternDefinitions.append('svg:pattern')
+                .attr('id', "pattern-1")
+                .attr('class', 'patternVertical')
+                .attr('width', 10)
+                .attr('height', 10)
+                .attr('patternUnits', 'userSpaceOnUse');
+            allpatternVertical
+                .append('svg:rect')
+                .attr('width', 10)
+                .attr('height', 10)
+                .attr('fill', "pink");
+            allpatternVertical
+                .append('svg:rect')
+                .attr('x', 0)
+                .attr('y', 0)
+                .attr('width', 1)
+                .attr('height', 10)
+                .attr('fill',"gray")
+                .style("opacity", 0.75);
+                
+            var allpatternHorizontal = patternDefinitions.append('svg:pattern')
+                .attr('id', "pattern-2")
+                .attr('class', 'patternHorizontal')
+                .attr('width', 10)
+                .attr('height', 10)
+                .attr('patternUnits', 'userSpaceOnUse');
+            allpatternHorizontal
+                .append('svg:rect')
+                .attr('width', 10)
+                .attr('height', 10)
+                .attr('fill', "pink");
+            allpatternHorizontal
+                .append('svg:rect')
+                .attr('x', 0)
+                .attr('y', 0)
+                .attr('width', 10)
+                .attr('height', 1)
+                .attr('fill',"gray");
+            
+            // add Legends
+            var legend = ["Late aircraft","Carrier","NAS"];
+
+            legend.forEach(function (d, i) {
+
+                svg_barchart.selectAll("rect5")
+                    .data(legend)
+                    .enter()
+                    .append("rect")
+                    .attr("x", 780)
+                    .attr("y", function (d, i) {
+                        return 650 + i * 34;
+                    })
+                    .attr("width", 25)
+                    .attr("height",25)
+                    .attr("fill", function (d,i){
+                        return "url(#pattern-" + i + ")";
+                    });
+                });
+            }
               function lineGraphLegend() {
               
                 var legendData = [
@@ -394,6 +767,7 @@
                             delayTotalsData = delayTotalsData.concat(chartData.value[reason.delayReason]);
                         });
 
+                        console.log(delayTotalsData);
                         chartContainer.selectAll("path")
                             .data(pie(delayTotalsData))
                             .enter()
@@ -490,393 +864,7 @@
                         .x(function (d) { return weekScale(d.Day); })
                         .y(function (d) { return delayMinScale(d.avg); })
                         .curve(d3.curveMonotoneX);
-                    
-                function barChartTrends (top10Airline) {
-                    var flightsExtent = d3.extent(top10Airline, function (d) {
-                        return d.value.totalFlightsByline;
-                    });
-                    console.log(flightsExtent);
-
-                    var flightScale = d3.scaleLinear()
-                        .domain(flightsExtent)
-                        .range([30, 800]);
-
-
-                    var delaysExtent = d3.extent(top10Airline,
-                        function (d) {
-                            return d.value.totalDelayByline;
-                        });
-
-                    var delaysScale = d3.scaleSqrt()
-                        .domain(delaysExtent)
-                        .range([60, 360]);
-
-
-                    var cancellsExtent = d3.extent(top10Airline,
-                        function (d) {
-                            return d.value.totalCancellByline;
-                        });
-                    console.log(cancellsExtent);
-
-                    var cancellsScale = d3.scaleSqrt()
-                        .domain(cancellsExtent)
-                        .range([60, 360]);
-
-                    // add texts of axises:
-
-
-                    svg_barchart.append("text")
-                        .text("Average Length & Number of Delays")
-                        .attr("x",  630)
-                        .attr("y",  75)
-                        .style("font-size","16pt")
-                        .style("fill","gray");
-
-                    svg_barchart.append("text")
-                        .text("Number of Cancellations")
-                        .attr("x",  70)
-                        .attr("y", 75)
-                        .style("font-size","16pt")
-                        .style("fill","gray");
-
-
-
-                    // add Legend texts
-                    svg_barchart.append("text")
-                        .text("Main Cause of Delays")
-                        .attr("x",810)
-                        .attr("y", 635)
-                        .attr("fill", "black")
-                        .style("font-size", "8pt");
-                    svg_barchart.append("text")
-                        .text("Late aircraft")
-                        .attr("x",815)
-                        .attr("y", 665)
-                        .attr("fill", "black")
-                        .style("font-size", "8pt");
-                    svg_barchart.append("text")
-                        .text("Carrier")
-                        .attr("x",815)
-                        .attr("y", 700)
-                        .attr("fill", "black")
-                        .style("font-size", "8pt");
-                    svg_barchart.append("text")
-                        .text("NAS")
-                        .attr("x",815)
-                        .attr("y", 735)
-                        .attr("fill", "black")
-                        .style("font-size", "8pt");
-
-                    // add frame of Legends
-                    svg_barchart.append("rect")
-                        .attr("id","legendframe")
-                        .attr("x", 765)
-                        .attr("y", 620)
-                        .attr("width", 160)
-                        .attr("height", 130)
-                        .style("fill", "none")
-                        .style("stroke","gray")
-                        .style("stroke-width","1pt");
-
-
-                    //Append a defs (for definition) element to  SVG
-                    var defs = svg_barchart.append("defs");
-
-                    //Append a linearGradient element to the defs and give it a unique id
-                    var linearGradient = defs.append("linearGradient")
-                            .attr("id", "linear-gradient");
-
-
-                    //Vertical gradient
-                    linearGradient
-                        .attr("x1", "0%")
-                        .attr("y1", "0%")
-                        .attr("x2", "0%")
-                        .attr("y2", "100%");
-
-
-                    //Set the color for the start (0%)
-                    linearGradient.append("stop")
-                        .attr("offset", "0%")
-                        .attr("stop-color", "#636363"); //dark purple
-
-                    //Set the color for the end (100%)
-                    linearGradient.append("stop")
-                        .attr("offset", "100%")
-                        .attr("stop-color", "#bdbdbd"); //light
-
-                    var recVerticle = svg_barchart
-                        .append("rect")
-                        .attr("id","ppp")
-                        .attr("x", 465)
-                        .attr("y", 30)
-                        .attr("width", 70)
-                        .attr("height", flightScale(1299444))
-                        .style("fill", "url(#linear-gradient)");;
-
-                    // add arrow for flights bar
-                    var triangle = d3.symbol().size(5500).type(d3.symbolTriangle);
-
-                    var triangleArrow = svg_barchart
-                        .append('path')
-                        .attr("transform", "translate(500,35)")
-                        .attr("d", triangle)
-                        .style("fill", "#636363");
-
-                    svg_barchart.append("text")
-                        .text("Airline")
-                        .attr("x", 474)
-                        .attr("y", 55)
-                        .style("font-size","16pt")
-                        .style("fill","#feb24c");
-
-                    svg_barchart.append("text")
-                        .text("95121 Flights")
-                        .attr("x",474)
-                        .attr("y", 765)
-                        .attr("fill", "black")
-                        .style("font-size", "7pt");
-
-                    svg_barchart.append("text")
-                        .text("129944 Flights")
-                        .attr("x",470)
-                        .attr("y", 150)
-                        .attr("fill", "black")
-                        .style("font-size", "7pt");
-
-                    // delay bars
-
-
-                    var colorScale = d3.scaleOrdinal(['#fde0dd','#fa9fb5','#c51b8a']);
-
-                    top10Airline.forEach(function (d) {
-                        var ptns = ['dots', 'vertical', 'horizontal', 'diagonal'];
-                        colorScale.domain(d.key);
-                        svg_barchart.selectAll("rect2")
-                            .data(top10Airline)
-                            .enter()
-                            .append("rect")
-                            .attr("x", 535)
-                            .attr("y", function (d, i) {
-                                return 100 + i * 68;
-                            })
-                            .attr("width", function (d) {
-                                return delaysScale(d.value.totalDelayByline);
-                            })
-                            .attr("height", 40)
-                            .attr("fill", function (d){
-                                var ptnNum = reasons.indexOf(tempArray[d.key]);
-                                if( ptnNum > 0 )
-                                    return "url(#pattern-" + ptns[ptnNum-1] + "-1)";
-                                return "pink";
-                            });
-                        });
-
-
-
-                // cancellation bars
-                top10Airline.forEach(function (d) {
-
-                    svg_barchart.selectAll("rect3")
-                        .data(top10Airline)
-                        .enter()
-                        .append("rect")
-                        .attr("x", function (d) {
-                            return 465 - cancellsScale(d.value.totalCancellByline);
-                        })
-                        .attr("y", function (d, i) {
-                            return 100 + i * 68;
-                        })
-                        .attr("width", function (d) {
-                            return cancellsScale(d.value.totalCancellByline);
-                        })
-                        .attr("height", 40)
-                        .attr("fill", "#c994c7");
-                    });
-                    // Airline Name Text
-                    top10Airline.forEach(function (d) {
-                        svg_barchart.selectAll("text5")
-                            .data(top10Airline)
-                            .enter()
-                            .append("text")
-                            .text(function (d) {
-                                return d.key;
-                            })
-                            .attr("x", 485)
-                            .attr("y", function (d, i) {
-                                return 125 + i * 68;
-                            })
-                            .attr("fill", "white")
-                            .style("font-size", "15pt");
-                        });
-                    
-                    // Average delay time Text
-                    top10Airline.forEach(function (d) {
-                        svg_barchart.selectAll("text2")
-                            .data(top10Airline)
-                            .enter()
-                            .append("text")
-                            .text(function (d) {
-                                return +Math.round((d.value.delayMins / d.value.totalDelayByline), 0) + " Mins";
-                            })
-                            .attr("x", function (d) {
-                                return 520 + delaysScale(d.value.totalDelayByline) / 2
-                            })
-                            .attr("y", function (d, i) {
-                                return 125 + i * 68;
-                            })
-                            .attr("fill", "purple")
-                            .style("font-size", "10pt");
-                        });
-                // delays Text
-                top10Airline.forEach(function (d) {
-                    svg_barchart.selectAll("text3")
-                        .data(top10Airline)
-                        .enter()
-                        .append("text")
-                        .text(function (d) {
-                            return +d.value.totalDelayByline;
-                        })
-                        .attr("x", function (d) {
-                            return 555 + delaysScale(d.value.totalDelayByline);
-                        })
-                        .attr("y", function (d, i) {
-                            return 125 + i * 68;
-                        })
-                        .attr("fill", "black")
-                        .style("font-size", "8pt");
-                    });
-                // Cancellations Text
-                top10Airline.forEach(function (d) {
-                    svg_barchart.selectAll("text4")
-                        .data(top10Airline)
-                        .enter()
-                        .append("text")
-                        .text(function (d) {
-                            return +d.value.totalCancellByline;
-                        })
-                        .attr("x", function (d) {
-                            return 400 - cancellsScale(d.value.totalCancellByline);
-                        })
-                        .attr("y", function (d, i) {
-                            return 125 + i * 68;
-                        })
-                        .attr("fill", "black")
-                        .style("font-size", "8pt");
-                    });
                 
-                function delayReason() {
-                    return {
-                        "carrierDelays": 0,
-                        "weatherDelays": 0,
-                        "nasDelays": 0,
-                        "securityDelays": 0,
-                        "lateAircraftDelays": 0
-                    };
-                }
-
-                // texture patterns
-                var patternDefinitions = svg_barchart.append('svg:defs');
-
-                var allpatternDots = patternDefinitions
-                    .append('svg:pattern')
-                    .attr('id', "pattern-dots-1")
-                    .attr('class', 'patternDots')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('patternUnits', 'userSpaceOnUse');
-                allpatternDots
-                    .append('svg:rect')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('fill', "pink");
-                allpatternDots
-                    .append('svg:rect')
-                    .attr('x', 4)
-                    .attr('y', 4)
-                    .attr('width', 2)
-                    .attr('height', 2)
-                    .attr('fill',"gray");
-
-                var allpatternDiagonals = patternDefinitions.append('svg:pattern')
-                    .attr('id', "pattern-diagonal-1")
-                    .attr('class', 'patternDiagonals')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('patternUnits', 'userSpaceOnUse');
-                allpatternDiagonals
-                    .append('svg:rect')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('fill', "pink");
-                allpatternDiagonals
-                    .append('svg:path')
-                    .attr('d', 'M-1,1 l2,-2 M0,5 l5,-5 M4,6 l2,-2')
-                    .attr('stroke', 'gray')
-                    .attr('stroke-width', 1);
-
-                var allpatternHorizontal = patternDefinitions.append('svg:pattern')
-                    .attr('id', "pattern-horizontal-1")
-                    .attr('class', 'patternHorizontal')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('patternUnits', 'userSpaceOnUse');
-                allpatternHorizontal
-                    .append('svg:rect')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('fill', "pink");
-                allpatternHorizontal
-                    .append('svg:rect')
-                    .attr('x', 0)
-                    .attr('y', 0)
-                    .attr('width', 10)
-                    .attr('height', 1)
-                    .attr('fill',"gray");
-
-                var allpatternVertical = patternDefinitions.append('svg:pattern')
-                    .attr('id', "pattern-vertical-1")
-                    .attr('class', 'patternVertical')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('patternUnits', 'userSpaceOnUse');
-                allpatternVertical
-                    .append('svg:rect')
-                    .attr('width', 10)
-                    .attr('height', 10)
-                    .attr('fill', "pink");
-                allpatternVertical
-                    .append('svg:rect')
-                    .attr('x', 0)
-                    .attr('y', 0)
-                    .attr('width', 1)
-                    .attr('height', 10)
-                    .attr('fill',"gray")
-                    .style("opacity", 0.75);
-                
-                // add Legends
-                var legend = ["Late aircraft","Carrier","NAS"];
-
-                legend.forEach(function (d, i) {
-                    var ptns = ['dots', 'vertical', 'horizontal', 'diagonal'];
-
-                    svg_barchart.selectAll("rect5")
-                        .data(legend)
-                        .enter()
-                        .append("rect")
-                        .attr("x", 780)
-                        .attr("y", function (d, i) {
-                            return 650 + i * 34;
-                        })
-                        .attr("width", 25)
-                        .attr("height",25)
-                        .attr("fill", function (d,i){
-                            if(i==0)
-                                return "pink";
-                            return "url(#pattern-" + ptns[i-1] + "-1)";
-                        });
-                    });
-                }
                 
                 function lineGraphTrends(data) {
                     // Create or modify paths for each airline
