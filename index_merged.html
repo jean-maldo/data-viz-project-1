@@ -104,6 +104,10 @@
             var svg_lineGraph = d3.select("#lineGraph_dalays");
             var svg_barchart = d3.select("#airline_delays");
 
+            var width_barchart = svg_barchart.attr("width");
+            var height_barchart = svg_barchart.attr("height");
+
+
             // color scales
             var colorScale_lineGraph = d3.scaleOrdinal(d3.schemeCategory20);
             var colorScale_map = d3.scaleOrdinal(d3.schemeCategory10);
@@ -397,6 +401,7 @@
                             delayTotalsData = delayTotalsData.concat(chartData.value[reason.delayReason]);
                         });
 
+                        console.log(delayTotalsData);
                         chartContainer.selectAll("path")
                             .data(pie(delayTotalsData))
                             .enter()
@@ -897,7 +902,7 @@
                         });
                     });
                 }
-
+                
                 var rank = [1,14.3,2,1,18.3,3.8,19.8,2.1,0.9,15.1,4.1,1.1];
                 var airlineRank = [];
                 airlineDataByDelays.forEach(function(d) {
@@ -906,6 +911,7 @@
                 });
 
                 var rankScale = d3.scaleLog().domain([69000, 1300000]).range([1, 12]);;
+
                 function lineGraphTrends(data) {
                     // Create or modify paths for each airline
                     var paths = plot_lineGraph.selectAll("path.lineGraph").data(data);
