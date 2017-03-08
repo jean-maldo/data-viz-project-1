@@ -76,9 +76,12 @@
             </svg>
         </div>
 
+        <h2>Average Delays by Airlines</h2>
+        <div> The graph presents the annual average of delay time for 12 airlines in the U.S. in 2016. Each line represents the trend of the change of delay time in different days in a week. Information of 12 airlines is labeled by different colors.
 
-        <div id="lineGraph">Average Delays by Airlines
-            <br />
+            </div>
+        <!-- <div id="lineGraph">Average Delays by Airlines
+            <br /> -->
             <svg id="lineGraph_dalays" height="450" width="820">
               <path d=" M 560 50
                 L 560 350"
@@ -86,7 +89,7 @@
                 stroke-opacity=0.5
                 stroke-dasharray="5,5"  />
             </svg>
-        </div>
+        <!-- </div> -->
 <h2>Cancellation and Delays by Airlines</h2>
 <div> This graph shows the cancellation and delays of flights from the top 10 airlines (most flights) for 2016 in the USA. The airline carriers
     are ranked in decreasing order by the number of flights in 2016. The purple bars on the left show the number of cancellations.The bars
@@ -460,7 +463,7 @@
                         airlineDataByDay.push({"airline": d.key, "values": [{"Day": "Sunday", "avg": d.value.hoursDelaySun/d.value.totalDelaySun}, {"Day": "Monday", "avg": d.value.hoursDelayMon/d.value.totalDelayMon}, {"Day": "Tuesday", "avg": d.value.hoursDelayTue/d.value.totalDelayTue}, {"Day": "Wednesday", "avg": d.value.hoursDelayWed/d.value.totalDelayWed}, {"Day": "Thursday", "avg": d.value.hoursDelayThu/d.value.totalDelayThu}, {"Day": "Friday", "avg": d.value.hoursDelayFri/d.value.totalDelayFri}, {"Day": "Saturday", "avg": d.value.hoursDelaySat/d.value.totalDelaySat}]});
                     });
 
-                    dailyFlightData= dailyFlightData.sort(function (a,b) {return d3.descending(a.values[6].avg, b.values[6].avg); });
+                    airlineDataByDay= airlineDataByDay.sort(function (a,b) {return d3.descending(a.values[6].avg, b.values[6].avg); });
 
                     // Scales and axis
                       var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
